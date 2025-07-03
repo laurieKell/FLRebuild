@@ -1,7 +1,7 @@
 Package: FLRebuild
 Type: Package
 Title: Fisheries Stock Rebuilding Analysis
-Version: 0.1.0
+Version: 0.1.4
 Authors@R: person("Author", "Name", email = "author@example.com", role = c("aut", "cre"))
 Description: A package for analyzing fisheries stock rebuilding trajectories and calculating rebuilding times. Provides methods for projecting stock rebuilding from different initial depletion levels using FLR (Fisheries Library for R) objects.
 License: GPL-3
