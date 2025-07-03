@@ -22,12 +22,10 @@ setGeneric("rebuild", function(object, targetF=NULL, targetSSB=NULL,
 #' Calculate rebuilding time
 #'
 #' @param object An object containing rebuilding trajectories
-#' @param nx Number of interpolation points
+#' @param ... Additional arguments
 #' @return A data frame with columns year and initial
 #' @export
-setGeneric("rebuildTime", function(object, nx=101) {
-  standardGeneric("rebuildTime")
-})
+setGeneric("rebuildTime", function(object, ...) standardGeneric("rebuildTime"))
 
 #' Calculate Blim Reference Point
 #' 
