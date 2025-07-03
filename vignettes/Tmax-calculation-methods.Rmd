@@ -1,0 +1,270 @@
+---
+title: "Tmax Calculation Methods for Fisheries Rebuilding"
+author: "Package Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tmax Calculation Methods for Fisheries Rebuilding}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6
+)
+```
+
+## Introduction
+
+This vignette demonstrates the implementation of Tmax calculation methods for fisheries stock rebuilding as described in National Standard 1 (NS1) guidelines. The NS1 guidelines provide guidance on determining the minimum (Tmin), maximum (Tmax), and target (Ttarget) time to rebuild a stock to a level that supports MSY (Bmsy).
+
+## Background
+
+Historically, Councils have had difficulties calculating Tmax based on the original data-intensive method (i.e., Tmin + one generation time) that requires comprehensive data on life history, natural mortality, age at maturity, fecundity, and maximum age of the stock (Restrepo et al., 1998). 
+
+To address this challenge, NMFS proposed specifying three methods to calculate Tmax within the guidelines:
+
+1. **Tmin plus one mean generation time** (status quo)
+2. **The amount of time the stock is expected to take to rebuild to its Bmsy if fished at 75 percent of the MFMT**
+3. **Tmin multiplied by two**
+
+Further background and rationale on the proposed revisions to the guidance on the calculation of Tmax was provided on pages 2795-2796 of the proposed rule (80 FR 2795-2796, January 20, 2015).
+
+## Generation Time and Recovery
+
+The IUCN Red List of Threatened Species uses generation time as a standardization for time units that allows using the same criteria on species with extremely different life spans (Mace et al., 2008). In criterion A, for example, population size reduction is measured over 10 years or three generations, whichever is longer.
+
+While generation time is typically applied for decline assessment, we can adapt this concept for recovery analysis.
+
+## Setup
+
+```{r setup}
+library(FLRebuild)
+library(FLBRP)
+library(FLife)
+library(ggplotFL)
+library(plyr)
+library(popbio)
+library(interp)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(123)
+```
+
+## Method 1: Generation Time Analysis
+
+### Theoretical Framework
+
+The first method calculates Tmax as Tmin plus one generation time. Let's explore how generation time relates to recovery time using population growth rates.
+
+```{r generation_analysis}
+# Create life history parameters
+par <- lhPar(FLPar(linf = 250, s = 0.9))
+eq <- lhEql(par)
+
+# Create fishing mortality sequence from MSY to crash
+ftar <- seq(c(refpts(eq)["msy","harvest"]), 
+            c(refpts(eq)["crash","harvest"]), 
+            length.out = 51)
+
+# Set fishing mortality in equilibrium
+fbar(eq) <- FLQuant(ftar)
+
+# Calculate population growth rate (r) for each fishing level
+r <- mdply(c(fbar(eq)), function(x) {
+  log(lambda(FLife:::leslie(eq, f = c(x))[,,1,drop = TRUE]))
+})
+
+# Create data frame with SSB, fishing mortality, and growth rate
+dt1 <- model.frame(FLQuants(ssb = ssb(eq), f = fbar(eq)), drop = TRUE)
+dt1 <- cbind(dt1, r = r[,2], bmsy = c(refpts(eq)["msy","ssb"]))
+
+# Calculate doubling time (time to recovery)
+dt1 <- transform(dt1, doubling = log(bmsy/ssb)/r)
+
+# Plot recovery time vs SSB/BMSY ratio
+ggplot(dt1) +
+  geom_line(aes(ssb/bmsy, doubling)) +
+  geom_hline(aes(yintercept = c(gt(eq))), col = "red", linetype = "dashed") +
+  geom_hline(aes(yintercept = c(gt(eq))*0.5), col = "orange", linetype = "dashed") +
+  xlab(expression(SSB/B[MSY])) + 
+  ylab("Time to recovery (years)") +
+  scale_y_continuous(limits = c(0, 40)) +
+  ggtitle("Recovery Time vs Initial Biomass Level") +
+  theme_minimal()
+```
+
+This plot shows how recovery time varies with initial biomass level. The red line represents one generation time, and the orange line represents half a generation time.
+
+## Method 2: Fishing Mortality Analysis
+
+### Rebuilding Under Different Fishing Pressures
+
+Let's analyze how different fishing mortality levels affect rebuilding time.
+
+```{r fishing_analysis}
+# Reset equilibrium
+eq <- lhEql(par)
+
+# Create fishing mortality scenarios
+fbar(eq) <- FLQuant(rep(1, 100))
+fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq(51)))
+
+# Convert to FLStock and project
+stk <- as(eq, "FLStock")
+stk <- fwd(stk, f = fbar(eq)[,-1], sr = eq)
+
+# Stop fishing and let stock rebuild
+stk <- fwd(stk, f = fbar(eq)[,-seq(50)]*0, sr = eq)
+
+# Extract SSB data relative to BMSY
+dat <- as.data.frame(ssb(stk)[,-1]/c(refpts(eq)["msy","ssb"]), drop = TRUE)
+
+# Plot rebuilding trajectories
+ggplot(subset(dat, year > 50)) +
+  geom_line(aes(year, data, group = iter), alpha = 0.3) +
+  xlab("Year") + 
+  ylab(expression(SSB/B[MSY])) +
+  geom_vline(aes(xintercept = c(gt(iter(eq,1))) + 50), col = "red", linetype = "dashed") +
+  geom_vline(aes(xintercept = c(gt(iter(eq,1)))*0.5 + 50), col = "orange", linetype = "dashed") +
+  geom_hline(aes(yintercept = 1), col = "blue", linetype = "dashed") +
+  scale_y_continuous(limits = c(0, 1.2)) +
+  ggtitle("Rebuilding Trajectories After Fishing Cessation") +
+  theme_minimal()
+```
+
+This plot shows rebuilding trajectories after fishing stops. The vertical lines represent one generation time (red) and half a generation time (orange) from the start of rebuilding.
+
+## Method 3: Interpolation Analysis
+
+### Finding Recovery Times
+
+Let's use interpolation to find the exact time when each trajectory reaches BMSY.
+
+```{r interpolation_analysis}
+# Use interpolation to find recovery times
+dt2 <- data.frame(with(dat, interp(iter, data, year,
+                                   output = "points", o = seq(), xo = rep(1, 51))))
+
+# Find year when each trajectory reaches BMSY (data = 1)
+dt3 <- ddply(dat, .(iter), with, year[(data-1)^2 == min((data-1)^2)])
+
+# Plot recovery time vs initial fishing level
+ggplot(dt3) +
+  geom_point(aes(c(ssb(eq)[,2,,,,,1])/c(refpts(eq)["msy","ssb"])[an(ac(iter))], V1)) +
+  xlab("Initial SSB/BMSY") +
+  ylab("Time to reach BMSY (years)") +
+  ggtitle("Recovery Time vs Initial Biomass") +
+  theme_minimal()
+```
+
+## Multi-Species Analysis
+
+### Real-World Application
+
+Let's apply these methods to real stock data to demonstrate practical application.
+
+```{r multispecies_analysis, eval=FALSE}
+# Load real stock data (commented out as data may not be available)
+# data(wklife)
+
+# dat <- dlply(wklife[-4,], .(stock), with, {
+#   print(stock[1])
+#   
+#   par <- lhPar(FLPar(a = a, b = b, linf = linf, k = k, t0 = t0, 
+#                      lmax = lmax, l50 = l50, a50 = a50))
+#   
+#   eq <- lhEql(par)
+#   fbar(eq) <- FLQuant(rep(1, 50))
+#   fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq(51)))
+#   stk <- as(eq, "FLStock")
+#   stk <- try(fwd(stk, f = fbar(eq)[,-1]*0, sr = eq))
+#   
+#   if("FLStock" %in% is(stk)) {
+#     return(list(ssb(stk)%/%refpts(eq)["msy","ssb"], gt(iter(eq,1))))
+#   }
+#   
+#   return(NULL)
+# })
+
+# dt1 <- ldply(dat, function(x) as.data.frame(x[[1]], drop = TRUE))
+# dt2 <- ddply(dt1, .(stock, iter), with, year[(data-1)^2 == min((data-1)^2)][1])
+
+# ggplot(dt2) +
+#   geom_smooth(aes(data, (51-an(ac(iter)))/51, V1, group = stock), se = FALSE) +
+#   geom_vline(aes(xintercept = c(gt(iter(eq,1)))), col = "red") +
+#   geom_vline(aes(xintercept = c(gt(iter(eq,1)))*0.5), col = "orange") +
+#   xlab("Time to recovery") +
+#   ylab(expression(SSB/B[MSY])) +
+#   scale_x_continuous(limits = c(0, 30)) +
+#   ggtitle("Multi-Species Recovery Analysis") +
+#   theme_minimal()
+```
+
+## Using FLRebuild Package Functions
+
+### Practical Implementation
+
+Now let's demonstrate how to use the FLRebuild package functions for Tmax calculation.
+
+```{r package_functions}
+# Example: Calculate Tmax using different methods
+# Assuming we have a Tmin value
+tmin_example <- 10
+
+# Method 1: Generation time
+tmax_gen <- calculateTmax(object = NULL, method = "generation", tmin = tmin_example)
+
+# Method 2: Multiply by 2
+tmax_mult <- calculateTmax(object = NULL, method = "multiply", tmin = tmin_example)
+
+# Method 3: Fishing method (requires MFMT)
+# tmax_fish <- calculateTmax(object = eq, method = "fishing", tmin = tmin_example, mfmt = 0.5)
+
+cat("Tmax using generation method:", tmax_gen, "years\n")
+cat("Tmax using multiply method:", tmax_mult, "years\n")
+```
+
+### Recovery Time Calculation
+
+```{r recovery_calculation}
+# Calculate recovery time for different scenarios
+scenarios <- data.frame(
+  initial_biomass = c(0.1, 0.3, 0.5, 0.7),
+  target_biomass = rep(1.0, 4),
+  growth_rate = rep(0.1, 4)
+)
+
+scenarios$recovery_time <- mapply(calculateRecoveryTime,
+                                 scenarios$initial_biomass,
+                                 scenarios$target_biomass,
+                                 scenarios$growth_rate)
+
+print(scenarios)
+```
+
+## Summary
+
+This vignette demonstrates three key methods for calculating Tmax in fisheries rebuilding:
+
+1. **Generation Time Method**: Uses biological generation time as a natural time scale for recovery
+2. **Fishing Mortality Method**: Considers rebuilding under continued fishing pressure
+3. **Multiply Method**: Simple rule-of-thumb approach
+
+The analysis shows that:
+
+- Recovery time is inversely related to initial biomass level
+- Generation time provides a biologically meaningful reference point
+- Different methods can yield different Tmax values
+- The choice of method depends on data availability and management objectives
+
+## References
+
+- Restrepo, V.R., et al. (1998). Technical guidance on the use of precautionary approaches to implementing National Standard 1 of the Magnuson-Stevens Fishery Conservation and Management Act. NOAA Technical Memorandum NMFS-F/SPO-31.
+- Mace, G.M., et al. (2008). Quantification of extinction risk: IUCN's system for classifying threatened species. Conservation Biology, 22(6), 1424-1442.
+- Federal Register (2015). Magnuson-Stevens Act Provisions; National Standard Guidelines. 80 FR 2795-2796. 

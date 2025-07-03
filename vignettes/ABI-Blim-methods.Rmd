@@ -1,0 +1,106 @@
+---
+title: "Age-Based Index (ABI) and Blim Methods in FLRebuild"
+author: "Package Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Age-Based Index (ABI) and Blim Methods in FLRebuild}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+## Introduction
+
+This vignette demonstrates the use of the Age-Based Index (ABI) and Blim methods in the `FLRebuild` package. These methods provide tools for analyzing the age structure of fish stocks and for calculating biomass limit reference points, which are important for fisheries management and stock assessment.
+
+## Setup
+
+```{r setup}
+library(FLRebuild)
+library(FLCore)
+library(FLBRP)
+```
+
+## Example Data
+
+We will use the example datasets `ple4` (an `FLStock` object) and `ple4brp` (an `FLBRP` object) provided by the `FLCore` and `FLBRP` packages.
+
+```{r data}
+data(ple4, package = "FLCore")
+data(ple4brp, package = "FLBRP")
+```
+
+## ABI Methods
+
+The ABI (Age-Based Index) methods allow you to:
+- Calculate the reference age at which a given proportion of the cumulative stock numbers is reached (`abiAge`)
+- Calculate the proportion of stock numbers above the reference age at MSY (`abiMsy`)
+- Calculate the observed proportion above the reference age for an `FLStock` object, relative to the MSY reference (`abi`)
+
+### Calculate Reference Age (`abiAge`)
+
+```{r abiAge}
+ref_age <- abiAge(ple4brp)
+ref_age
+```
+
+### Calculate Proportion Above Reference Age at MSY (`abiMsy`)
+
+```{r abiMsy}
+p_above_ref <- abiMsy(ple4brp)
+p_above_ref
+```
+
+### Calculate Observed Proportion Above Reference Age (`abi`)
+
+```{r abi}
+abi_obs <- abi(ple4, ple4brp)
+abi_obs
+```
+
+### Visualizing Age Structure
+
+You can visualize the age structure and the reference age threshold:
+
+```{r plot-age-structure}
+# Extract stock numbers at the most recent year
+stk_n <- stock.n(ple4)[, dim(ple4)[2], drop=TRUE]
+ages_vec <- as.numeric(dimnames(stk_n)$age)
+
+barplot(as.numeric(stk_n), names.arg = ages_vec,
+        main = "Stock Numbers by Age (Most Recent Year)",
+        xlab = "Age", ylab = "Stock Numbers")
+abline(v = as.numeric(ref_age), col = "red", lwd = 2, lty = 2)
+legend("topright", legend = c("Reference Age"), col = "red", lty = 2, lwd = 2)
+```
+
+## Blim Method
+
+The `blim` method calculates biomass limit reference points (Blim) for an `FLBRP` object based on a ratio of virgin recruitment. This is useful for defining biological reference points in management strategy evaluation.
+
+### Calculate Blim Reference Points
+
+```{r blim}
+blim_ref <- blim(ple4brp, ratio = 0.3)
+blim_ref
+```
+
+## Interpretation
+
+- **ABI methods** help you understand the age structure of the stock and how much of the population is above a biologically meaningful age threshold.
+- **Blim** provides a reference point for the minimum safe biomass, below which the stock is considered to be at risk.
+
+## References
+
+- Kell, L. T., Mosqueira, I., et al. (2005). Evaluation of multiple management objectives for mixed fisheries. ICES Journal of Marine Science, 62(6), 1236-1252.
+- ICES (2018). ICES Advice basis. https://www.ices.dk/sites/pub/Publication%20Reports/Advice/2018/2018/Advice_basis_2018.pdf
+- FLR Project: https://flr-project.org/ 

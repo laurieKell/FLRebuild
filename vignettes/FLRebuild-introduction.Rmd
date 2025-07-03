@@ -1,0 +1,153 @@
+---
+title: "Introduction to FLRebuild"
+author: "Package Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to FLRebuild}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+FLRebuild is an R package designed for analyzing fisheries stock rebuilding trajectories and calculating rebuilding times. It provides methods for projecting stock rebuilding from different initial depletion levels using FLR (Fisheries Library for R) objects.
+
+## Installation
+
+```{r eval=FALSE}
+# Install from GitHub (if available)
+# devtools::install_github("username/FLRebuild")
+
+# Or install from local source
+# install.packages("path/to/FLRebuild", repos = NULL, type = "source")
+```
+
+## Basic Usage
+
+### Loading the Package
+
+```{r}
+library(FLRebuild)
+```
+
+### Working with FLBRP Objects
+
+The package provides methods for working with FLBRP (Fisheries Library for R - Biological Reference Points) objects:
+
+```{r eval=FALSE}
+# Create a life history equilibrium object
+library(FLife)
+eq <- lhEql(lhPar(FLPar(linf=250, s=0.9)))
+
+# Run rebuilding analysis
+stk <- rebuild(eq, nInitial = 50)
+
+# Calculate rebuilding times
+rebuild_times <- rebuildTime(stk)
+```
+
+### Working with biodyn Objects
+
+For biodyn objects, you can calculate rebuilding trajectories:
+
+```{r eval=FALSE}
+# Create a biodyn object
+library(biodyn)
+bd <- biodyn(FLPar(r=0.5, k=1000, p=1))
+
+# Calculate rebuilding time
+rebuild_data <- rebuildTime(bd, target = 1000)
+```
+
+### Utility Functions
+
+The package also includes utility functions for calculating Tmax (maximum rebuilding time) using different methods as described in NS1 guidelines:
+
+```{r}
+# Calculate Tmax using generation time method
+tmax_gen <- calculateTmax(object = NULL, method = "generation", tmin = 10)
+
+# Calculate Tmax using multiply method
+tmax_mult <- calculateTmax(object = NULL, method = "multiply", tmin = 10)
+
+# Calculate recovery time based on growth rate
+recovery_time <- calculateRecoveryTime(initial_biomass = 0.5, 
+                                      target_biomass = 1.0, 
+                                      growth_rate = 0.1)
+```
+
+## Key Features
+
+1. **Multiple Object Types**: Works with FLBRP, biodyn, and FLStock objects
+2. **Flexible Rebuilding Analysis**: Projects trajectories from various initial depletion levels
+3. **Tmax Calculation**: Implements different methods for calculating maximum rebuilding time
+4. **Visualization**: Includes plotting functions for rebuilding trajectories
+5. **NS1 Guidelines Compliance**: Follows National Standard 1 guidelines for rebuilding analysis
+
+## Methods for Tmax Calculation
+
+The package implements three methods for calculating Tmax as described in NS1 guidelines:
+
+1. **Generation Method**: Tmin + one generation time
+2. **Fishing Method**: Time to rebuild at 75% of Maximum Fishing Mortality Threshold (MFMT)
+3. **Multiply Method**: Tmin multiplied by 2
+
+## Examples
+
+### Basic Rebuilding Analysis
+
+```{r eval=FALSE}
+# Load required packages
+library(FLRebuild)
+library(FLife)
+
+# Create equilibrium object
+eq <- lhEql(lhPar(FLPar(linf=250, s=0.9)))
+
+# Run rebuilding analysis
+stk <- rebuild(eq, 
+               targetF = 0,           # No fishing during rebuild
+               targetSSB = 1000,      # Target SSB
+               nInitial = 100,        # Number of initial conditions
+               burnin = 20)           # Burn-in period
+
+# Calculate rebuilding times
+rebuild_times <- rebuildTime(stk, nx = 101)
+
+# Plot results
+plotRebuildTrajectories(as.data.frame(ssb(stk), drop = TRUE))
+```
+
+### Advanced Analysis
+
+```{r eval=FALSE}
+# Analyze multiple scenarios
+scenarios <- list(
+  no_fishing = list(targetF = 0),
+  low_fishing = list(targetF = 0.1),
+  moderate_fishing = list(targetF = 0.2)
+)
+
+results <- lapply(scenarios, function(scen) {
+  rebuild(eq, targetF = scen$targetF, nInitial = 50)
+})
+
+# Compare rebuilding times
+rebuild_times <- lapply(results, rebuildTime)
+```
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
+
+## License
+
+This package is licensed under the GPL-3 license. 
