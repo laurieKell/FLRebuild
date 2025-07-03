@@ -27,10 +27,10 @@ Collate:
     generic.R
     package.R
     utils.R
+    rebuild-methods.R
     biodyn.R
     biodyn-rebuild.R
     abi.R
-    rebuild-methods.R
     FLBRP-blim.R
     FLBRP-rebuild.R
 VignetteBuilder: knitr 
