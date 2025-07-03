@@ -17,7 +17,8 @@ Imports:
     interp,
     akima,
     methods,
-    ggplot2
+    ggplot2,
+    mpb
 Suggests:
     testthat,
     knitr,
@@ -26,6 +27,8 @@ Collate:
     generic.R
     package.R
     utils.R
+    biodyn.R
+    biodyn-rebuild.R
     abi.R
     rebuild-methods.R
     FLBRP-blim.R
