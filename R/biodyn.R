@@ -1,5 +1,5 @@
-library(plyr)
-library(mpb)
+require(plyr)
+require(mpb)
 
 gtBd<-function(x) 1/params(x)["r"]
 
@@ -35,15 +35,15 @@ rebuild<-function(r,p,k=1e3,b0=1,nyrs=50,niters=101){
   dat=dat[order(dat$initial),c("year","initial")][-1,]
   cbind(shape=shape,dat[dat$year<nyrs,])}
 
-dat=mdply(expand.grid(r=seq(0.1,   1,length.out=10),
-                      p=seq(2.0001,5,length.out=10)),rebuild)
-
-ggplot(dat)+
-  geom_line(aes(initial,year,col=ac(r),group=paste(p,r)))+
-  #geom_hline(aes(yintercept=mean(gt(object))),col="red")+
-  theme_minimal()+
-  theme(legend.position="bottom")+
-  labs(y="Year", x=expression(Biomass/B[MSY]))
+# dat=mdply(expand.grid(r=seq(0.1,   1,length.out=10),
+#                       p=seq(2.0001,5,length.out=10)),rebuild)
+# 
+# ggplot(dat)+
+#   geom_line(aes(initial,year,col=ac(r),group=paste(p,r)))+
+#   #geom_hline(aes(yintercept=mean(gt(object))),col="red")+
+#   theme_minimal()+
+#   theme(legend.position="bottom")+
+#   labs(y="Year", x=expression(Biomass/B[MSY]))
 
 
 

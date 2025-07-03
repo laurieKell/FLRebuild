@@ -13,11 +13,7 @@
 #' @param truncate Whether to remove burn-in period
 #' @return An object with rebuilding trajectories
 #' @export
-setGeneric("rebuild", function(object, targetF=NULL, targetSSB=NULL,
-                               nInitial=100, growthRate=0.25, minVal=1e-6, maxVal=1,
-                               burnin=20, truncate=TRUE) {
-  standardGeneric("rebuild")
-})
+setGeneric("rebuild", function(object, ...) standardGeneric("rebuild"))
 
 #' Calculate rebuilding time
 #'
