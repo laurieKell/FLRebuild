@@ -56,9 +56,11 @@ setMethod("gt", signature(x="Rebuild"),
           function(x) 1/params(x)["r"])
 
 #' @rdname rebuild
-setMethod("rebuild", signature(object="numeric", p="numeric"),
-  function(object, p, ...) {
+setMethod("rebuild", signature(object="numeric"),
+  function(object, ...) {
     args <- list(...)
+    if (is.null(args$p)) stop("Argument 'p' must be supplied in ...")
+    p <- args$p
     k <- if (!is.null(args$k)) args$k else 1e3
     b0 <- if (!is.null(args$b0)) args$b0 else 1
     nyrs <- if (!is.null(args$nyrs)) args$nyrs else 50
