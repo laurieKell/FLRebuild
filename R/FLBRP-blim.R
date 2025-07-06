@@ -59,5 +59,12 @@ setMethod("blim", signature(object="FLBRP"),
          
          return(rtn)})
 
+setMethod("blim", signature(object="FLBRPs"), function(object, ratio=0.3) {
+  
+  rtn=ldply(object, blim, ratio=ratio)
+
+  names(rtn)[c(2:9)]=c("harvest","yield","rec","ssb","biomass","revenue","cost","profit")
+  rtn})
+          
 #' @seealso
 #' \code{\link{FLBRP}} \code{\link{refpts}} \code{\link{computeRefpts}}
