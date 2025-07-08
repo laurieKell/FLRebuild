@@ -13,6 +13,7 @@ Imports:
     FLife,
     ggplotFL,
     plyr,
+    dplyr,
     popbio,
     interp,
     akima,
