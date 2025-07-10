@@ -34,5 +34,4 @@ Collate:
     abi.R
     rebuild-methods.R
     FLBRP-blim.R
-    FLBRP-rebuild.R
 VignetteBuilder: knitr 
