@@ -1,3 +1,20 @@
+interp<-function(df){
+  initials=sort(unique(df$initial))
+  Yr      =rep(NA, length(initials))
+  
+  for (i in seq_along(initials)) {
+    sub_df = df[df$initial == initials[i], ]
+    idx = which(sub_df$ssb >= 1)
+    if (length(idx) > 0) {
+      Yr[i] = sub_df$year[min(idx)]
+    } else {
+      Yr[i] = NA}}
+  
+  result=data.frame(initial=initials,
+                    Yr     =Yr)
+  result}
+
+
 #' @rdname rebuild
 #' @export
 setMethod("rebuild", signature(object="FLBRP"),
@@ -96,6 +113,7 @@ setMethod("rebuildTime", signature(object="biodyn"),
 #' @rdname rebuildTime
 #' @export
 setMethod("rebuildTime", signature(object="FLStock"),
+          
           function(object, nx=101) {
             if (!is(object, "FLStock"))
               stop("object must be an FLStock object")
@@ -105,15 +123,21 @@ setMethod("rebuildTime", signature(object="FLStock"),
             
             bmsy=c(ssb(object)[,1,,,,dim(object)[6]])
             
-            dat        =as.data.frame(ssb(object), drop=TRUE)
-            dat$ssb    =dat$data/bmsy
-            dat$initial=c(ssb(object[,1]))[an(ac(dat$iter))]/bmsy
+            df        =as.data.frame(ssb(object), drop=TRUE)
+            df$ssb    =df$data/bmsy
+            df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
+            df        =na.omit(df)
+
+            #df=transmute(as.data.frame(ssb(object), drop=TRUE),
+            #              ssb=data/bmsy,
+            #              initial=c(ssb(object[,1]))[an(ac(iter))]/bmsy,
+            #              year=year)
             
-            rtn=suppressWarnings(
-              as.data.frame(with(dat, 
-                                 akima::interp(x=initial, y=ssb, z=year, yo=1,
-                                               duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
+            #rtn=suppressWarnings(
+            #  as.data.frame(with(df, 
+            #                     akima::interp(x=initial, y=ssb, z=year, yo=1,
+            #                                   duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
             
             names(rtn)=c("year", "initial")
-            return(data.frame(rtn))
-          }) 
+            
+            return(interp(df))}) 
