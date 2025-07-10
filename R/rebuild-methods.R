@@ -77,7 +77,7 @@ setMethod("rebuildTime", signature(object="FLStock"),
       stop("nx must be a positive integer")
 
 print(1)    
-    df     =as.data.frame(ssb(object), drop=TRUE)
+    df     =as.data.frame(FLCore:::ssb(object), drop=TRUE)
     print(1)    
     iters  =sort(unique(df$iter))
     print(1)    
