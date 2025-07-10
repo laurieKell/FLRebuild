@@ -16,20 +16,15 @@ A comprehensive R package for analyzing fisheries stock rebuilding trajectories 
 
 ## Installation
 
-### From CRAN (when available)
-```r
-install.packages("FLRebuild")
-```
 
 ### From GitHub
 ```r
-# Install devtools if you haven't already
-if (!requireNamespace("devtools", quietly = TRUE)) {
-  install.packages("devtools")
-}
+# Install remotes if you haven't already
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")}
 
 # Install from GitHub
-devtools::install_github("lauriekell/FLRebuild")
+remotes::install_github("lauriekell/FLRebuild")
 ```
 
 ### From Source
