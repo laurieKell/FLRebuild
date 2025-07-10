@@ -1,9 +1,9 @@
 require(plyr)
 require(mpb)
 
-gtBd<-function(x) 1/params(x)["r"]
+gtBd=function(x) 1/params(x)["r"]
 
-rebuildBiodyn<-function(r,p,k=1e3,b0=1,nyrs=50,niters=101){
+rebuildBiodyn=function(r,p,k=1e3,b0=1,nyrs=50,niters=101){
   
   object=biodyn(params=FLPar(r=r,p=p,k=k,B0=b0))
   

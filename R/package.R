@@ -1,17 +1,30 @@
 #' FLRebuild: Fisheries Stock Rebuilding Analysis
 #' 
-#' @description A package for analyzing fisheries stock rebuilding trajectories 
+#' @description A comprehensive package for analyzing fisheries stock rebuilding trajectories 
 #' and calculating rebuilding times. Provides methods for projecting stock 
 #' rebuilding from different initial depletion levels using FLR 
 #' (Fisheries Library for R) objects.
 #' 
-#' @docType package
+#' The package supports multiple stock assessment models:
+#' \itemize{
+#'   \item \code{FLBRP} objects for equilibrium-based rebuilding analysis
+#'   \item \code{biodyn} objects for biomass dynamic models
+#'   \item \code{FLStock} objects for time series analysis
+#' }
+#' 
+#' Key features include:
+#' \itemize{
+#'   \item Rebuilding trajectory projections
+#'   \item Recovery time calculations
+#'   \item Age-based indicators (ABI)
+#'   \item Stock-recruitment relationship analysis
+#'   \item Reference point calculations (Blim, MSY)
+#' }
+#' 
 #' @name FLRebuild
 #' @aliases FLRebuild-package
 #' 
-#' @importFrom methods setGeneric setMethod standardGeneric
-#' @importFrom akima interp
-#' @importFrom plyr ddply dlply ldply mdply
+#' @importFrom methods setGeneric setMethod
 #' 
 #' @examples
 #' # Load the package

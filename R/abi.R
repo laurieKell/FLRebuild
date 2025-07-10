@@ -10,12 +10,20 @@
 setMethod("abiAge",
           signature(object = "FLBRP"),
           function(object, ref = "msy", p = 0.9) {
-            fbar(object) <- as.FLQuant(computeRefpts(object)[ref, "harvest", drop = TRUE], dimnames = list(iter = seq(dim(object)[6])))
-            stk.n <- stock.n(object)[-1]
-            cumN <- apply(stk.n, c(2, 6), cumsum) %/% quantSums(stk.n)
-            ages <- ages(stk.n)
-            ages[cumN <= p] <- NA
-            apply(ages, c(2:6), function(x) min(c(x + 1, dims(object)$max), na.rm = TRUE))
+            fbar(object) = as.FLQuant(computeRefpts(object)[ref, "harvest", drop = TRUE], dimnames = list(iter = seq(dim(object)[6])))
+            stk.n = stock.n(object)[-1]
+            # Calculate cumulative sum and normalize
+            cumN = apply(stk.n, c(2, 6), cumsum)
+            totN = quantSums(stk.n)
+            # Avoid division by zero
+            totN[totN == 0] = NA
+            propN = cumN / rep(totN, each = dim(stk.n)[1])
+            ages_arr = array(as.numeric(ages(stk.n)), dim = dim(stk.n))
+            ages_arr[propN <= p] = NA
+            # Find the minimum age above threshold for each year/iter
+            ref_age = apply(ages_arr, c(2, 6), function(x) min(c(x, dims(object)$max), na.rm = TRUE))
+            # Return as FLQuant with correct dimnames
+            FLQuant(ref_age, dimnames = list(year = dimnames(stk.n)$year, iter = dimnames(stk.n)$iter))
           }
 )
 
@@ -31,11 +39,17 @@ setMethod("abiAge",
 setMethod("abiMsy",
           signature(object = "FLBRP"),
           function(object, ref = "msy", p = 0.9) {
-            fbar(object) <- as.FLQuant(computeRefpts(object)[ref, "harvest", drop = TRUE], dimnames = list(iter = seq(dim(object)[6])))
-            A <- abiAge(object, ref, p)
-            stk.n <- stock.n(object)[-1]
-            flag <- FLQuant(ages(stk.n) >= FLCore:::expand(A, age = dimnames(stk.n)$age))
-            apply(stk.n %*% flag, c(2, 6), sum) %/% apply(stk.n, c(2, 6), sum)
+            fbar(object) = as.FLQuant(computeRefpts(object)[ref, "harvest", drop = TRUE], dimnames = list(iter = seq(dim(object)[6])))
+            A = abiAge(object, ref, p)
+            stk.n = stock.n(object)[-1]
+            # Expand A to match stk.n dimensions (age, year, unit, season, area, iter)
+            A_exp = FLCore:::expand(A, year = dimnames(stk.n)$year, iter = dimnames(stk.n)$iter)
+            # Create a flag array for ages >= reference age
+            flag = FLQuant(NA, dimnames = dimnames(stk.n))
+            for (i in seq_along(dim(stk.n)[6])) {
+              flag[,,, , ,i] = FLQuant(ages(stk.n) >= c(A_exp[,,, , ,i]), dimnames = dimnames(stk.n)[1:6])
+            }
+            apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE) / apply(stk.n, c(2, 6), sum, na.rm = TRUE)
           }
 )
 
@@ -46,13 +60,17 @@ setMethod("abiMsy",
 #' @param A Reference age (FLQuant).
 #' @return An FLQuant object with the proportion above the reference age.
 #' @keywords internal
-abistock <- function(x, A) {
+abistock = function(x, A) {
   stk.n = stock.n(x)[-1]
   if (dim(x)[6] > 1 & dim(A)[6] == 1)
     A = propagate(A, dim(x)[6])
-  amsy = FLQuant(rep(c(A), each = prod(dim(stk.n)[-6])), dimnames = dimnames(stk.n))
-  flag = FLQuant(ages(stk.n) >= amsy)
-  apply(stk.n %*% flag, c(2, 6), sum) %/% apply(stk.n, c(2, 6), sum)
+  # Expand A to match stk.n dimensions
+  A_exp = FLCore:::expand(A, year = dimnames(stk.n)$year, iter = dimnames(stk.n)$iter)
+  flag = FLQuant(NA, dimnames = dimnames(stk.n))
+  for (i in seq_along(dim(stk.n)[6])) {
+    flag[,,, , ,i] = FLQuant(ages(stk.n) >= c(A_exp[,,, , ,i]), dimnames = dimnames(stk.n)[1:6])
+  }
+  apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE) / apply(stk.n, c(2, 6), sum, na.rm = TRUE)
 }
 
 #' Calculate Proportion Above Reference Age for FLStock
@@ -78,12 +96,12 @@ setMethod("abi",
 setMethod("abi",
           signature(object = "FLStock", age = "FLQuant"),
           function(object, age) {
-            stk.n <- stock.n(object)[-1]
+            stk.n = stock.n(object)[-1]
             if (dim(object)[6] > 1 & dim(age)[6] == 1) {
-              age <- propagate(age, dim(object)[6])
+              age = propagate(age, dim(object)[6])
             }
-            amsy <- FLQuant(rep(c(age), each = prod(dim(stk.n)[-6])), dimnames = dimnames(stk.n))
-            flag <- FLQuant(ages(stk.n) >= amsy)
+            amsy = FLQuant(rep(c(age), each = prod(dim(stk.n)[-6])), dimnames = dimnames(stk.n))
+            flag = FLQuant(ages(stk.n) >= amsy)
             apply(stk.n %*% flag, c(2, 6), sum) %/% apply(stk.n, c(2, 6), sum)
           }
 )

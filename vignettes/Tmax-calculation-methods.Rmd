@@ -117,10 +117,10 @@ fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq
 
 # Convert to FLStock and project
 stk <- as(eq, "FLStock")
-stk <- fwd(stk, f = fbar(eq)[,-1], sr = eq)
+stk <- fwd(stk, harvest = fbar(eq)[,-1], sr = eq)
 
 # Stop fishing and let stock rebuild
-stk <- fwd(stk, f = fbar(eq)[,-seq(50)]*0, sr = eq)
+stk <- fwd(stk, harvest = fbar(eq)[,-seq(50)]*0, sr = eq)
 
 # Extract SSB data relative to BMSY
 dat <- as.data.frame(ssb(stk)[,-1]/c(refpts(eq)["msy","ssb"]), drop = TRUE)
@@ -183,7 +183,7 @@ Let's apply these methods to real stock data to demonstrate practical applicatio
 #   fbar(eq) <- FLQuant(rep(1, 50))
 #   fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq(51)))
 #   stk <- as(eq, "FLStock")
-#   stk <- try(fwd(stk, f = fbar(eq)[,-1]*0, sr = eq))
+#   stk <- try(fwd(stk, harvest = fbar(eq)[,-1]*0, sr = eq))
 #   
 #   if("FLStock" %in% is(stk)) {
 #     return(list(ssb(stk)%/%refpts(eq)["msy","ssb"], gt(iter(eq,1))))

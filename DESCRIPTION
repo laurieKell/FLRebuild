@@ -1,28 +1,30 @@
 Package: FLRebuild
 Type: Package
 Title: Fisheries Stock Rebuilding Analysis
-Version: 0.1.4
-Authors@R: person("Author", "Name", email = "author@example.com", role = c("aut", "cre"))
-Description: A package for analyzing fisheries stock rebuilding trajectories and calculating rebuilding times. Provides methods for projecting stock rebuilding from different initial depletion levels using FLR (Fisheries Library for R) objects.
+Version: 0.1.5
+Authors@R: person("FLR", "Team", email = "flr-team@flr-project.org", role = c("aut", "cre"))
+Description: A comprehensive package for analyzing fisheries stock rebuilding trajectories and calculating rebuilding times. Provides methods for projecting stock rebuilding from different initial depletion levels using FLR (Fisheries Library for R) objects. Supports multiple stock assessment models including FLBRP, biodyn, and FLStock objects.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 Imports:
-    FLCore,
-    FLBRP,
-    FLife,
-    ggplotFL,
-    plyr,
-    dplyr,
-    popbio,
+    FLCore (>= 2.6.0),
+    FLBRP (>= 2.5.0),
+    FLife (>= 2.6.0),
+    ggplotFL (>= 0.2.0),
+    plyr (>= 1.8.0),
+    dplyr (>= 1.0.0),
+    popbio (>= 2.4.0),
     methods,
-    ggplot2,
-    mpb
+    ggplot2 (>= 3.0.0),
+    mpb (>= 0.0.0),
+    data.table (>= 1.14.0)
 Suggests:
-    testthat,
-    knitr,
-    rmarkdown
+    testthat (>= 3.0.0),
+    knitr (>= 1.30),
+    rmarkdown (>= 2.0),
+    akima (>= 0.6.0)
 Collate:
     generic.R
     package.R

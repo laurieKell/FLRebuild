@@ -2,11 +2,13 @@
 % Please edit documentation in R/generic.R, R/rebuild-methods.R
 \name{rebuildTime}
 \alias{rebuildTime}
-\alias{rebuildTime,biodyn-method}
 \alias{rebuildTime,FLStock-method}
+\alias{rebuildTime,biodyn-method}
 \title{Calculate rebuilding time}
 \usage{
 rebuildTime(object, ...)
+
+\S4method{rebuildTime}{FLStock}(object, nx = 101)
 
 \S4method{rebuildTime}{biodyn}(
   object,
@@ -17,8 +19,6 @@ rebuildTime(object, ...)
   maxVal = 1,
   nx = 101
 )
-
-\S4method{rebuildTime}{FLStock}(object, nx = 101)
 }
 \arguments{
 \item{object}{An object containing rebuilding trajectories}

@@ -10,14 +10,14 @@
 #' @param mfmt Maximum fishing mortality threshold
 #' @return Tmax value
 #' @export
-calculateTmax <- function(object, method = "generation", tmin = NULL, mfmt = NULL) {
+calculateTmax = function(object, method = "generation", tmin = NULL, mfmt = NULL) {
   
   if (method == "generation") {
     # Method 1: Tmin + one generation time
     if (is.null(tmin)) {
       stop("tmin must be provided for generation method")
     }
-    gt <- gt(object)  # generation time
+    gt = gt(object)  # generation time
     return(tmin + gt)
     
   } else if (method == "fishing") {
@@ -25,7 +25,7 @@ calculateTmax <- function(object, method = "generation", tmin = NULL, mfmt = NUL
     if (is.null(mfmt)) {
       stop("mfmt must be provided for fishing method")
     }
-    target_f <- mfmt * 0.75
+    target_f = mfmt * 0.75
     # This would need implementation based on specific stock dynamics
     stop("Fishing method not yet implemented")
     
@@ -50,14 +50,14 @@ calculateTmax <- function(object, method = "generation", tmin = NULL, mfmt = NUL
 #' @param growth_rate Population growth rate
 #' @return Time to recovery in years
 #' @export
-calculateRecoveryTime <- function(initial_biomass, target_biomass, growth_rate) {
+calculateRecoveryTime = function(initial_biomass, target_biomass, growth_rate) {
   if (initial_biomass >= target_biomass) {
     return(0)
   }
   
   # Using exponential growth model: B(t) = B0 * exp(r*t)
   # Solve for t: t = ln(Btarget/B0) / r
-  recovery_time <- log(target_biomass / initial_biomass) / growth_rate
+  recovery_time = log(target_biomass / initial_biomass) / growth_rate
   
   return(max(0, recovery_time))
 }
@@ -71,7 +71,7 @@ calculateRecoveryTime <- function(initial_biomass, target_biomass, growth_rate) 
 #' @param title Plot title
 #' @return ggplot object
 #' @export
-plotRebuildTrajectories <- function(rebuild_data, target_line = 1, title = "Rebuilding Trajectories") {
+plotRebuildTrajectories = function(rebuild_data, target_line = 1, title = "Rebuilding Trajectories") {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("ggplot2 is required for plotting")
   }

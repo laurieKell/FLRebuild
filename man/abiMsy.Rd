@@ -4,14 +4,16 @@
 \alias{abiMsy}
 \title{Calculate P(N) at FMSY for a FLBRP object.}
 \usage{
-abiMsy(object, ref = "msy", p = 0.9)
+abiMsy(object, ref = "msy", p = 0.9, ...)
 }
 \arguments{
+\item{object}{A FLBRP object.}
+
 \item{ref}{Reference point, e.g., "msy" (default) or "f0.1".}
 
 \item{p}{Probability threshold (default = 0.9).}
 
-\item{y}{A FLBRP object.}
+\item{...}{Additional arguments}
 }
 \value{
 An FLQuant object containing P(N) at FMSY.

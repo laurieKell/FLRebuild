@@ -9,6 +9,8 @@ blim(object, ...)
 \arguments{
 \item{object}{An FLBRP object}
 
+\item{...}{Additional arguments}
+
 \item{ratio}{Ratio of virgin recruitment to use (default 0.3)}
 }
 \value{

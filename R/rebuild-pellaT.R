@@ -36,57 +36,57 @@ setMethod("rTime", signature(object="numeric"),
       stop("r and p must be provided when object is numeric")
     
     # Find the maximum length among all arguments
-    n <- max(length(object), length(r), length(p), length(bmsy), length(F))
+    n = max(length(object), length(r), length(p), length(bmsy), length(F))
     # Recycle all arguments to the same length
-    initial <- rep(object, length.out=n)
-    r <- rep(r, length.out=n)
-    p <- rep(p, length.out=n)
-    bmsy <- rep(bmsy, length.out=n)
-    F <- rep(F, length.out=n)
+    initial = rep(object, length.out=n)
+    r = rep(r, length.out=n)
+    p = rep(p, length.out=n)
+    bmsy = rep(bmsy, length.out=n)
+    F = rep(F, length.out=n)
 
     # Check for NA values in any argument
-    na_mask <- is.na(initial) | is.na(r) | is.na(p) | is.na(bmsy) | is.na(F)
+    na_mask = is.na(initial) | is.na(r) | is.na(p) | is.na(bmsy) | is.na(F)
     if (all(na_mask)) {
       return(rep(NA_real_, n))
     }
 
     # Calculate carrying capacity (virgin biomass) from bmsy and p
-    K <- ifelse(abs(p) < 1e-6, bmsy * exp(1), bmsy * (p+1)^(1/p))
+    K = ifelse(abs(p) < 1e-6, bmsy * exp(1), bmsy * (p+1)^(1/p))
     
     # Effective growth rate under fishing mortality
-    r_eff <- r - F
+    r_eff = r - F
 
     # Check if recovery is possible under current fishing mortality
-    invalid <- r_eff <= 0
+    invalid = r_eff <= 0
     if (any(invalid, na.rm=TRUE)) {
       warning("Fishing mortality too high: recovery not possible for some elements")
     }
 
     # Initial and target biomass
-    B0 <- initial
-    B1 <- bmsy
+    B0 = initial
+    B1 = bmsy
 
     # Fox (Gompertz) model with fishing mortality
-    fox_model <- abs(p) < 1e-6
-    t <- rep(NA_real_, n)
+    fox_model = abs(p) < 1e-6
+    t = rep(NA_real_, n)
     # Fox model calculation
-    t[fox_model & !invalid & !na_mask] <- (log(log(K[fox_model & !invalid & !na_mask]/B0[fox_model & !invalid & !na_mask])) - 
+    t[fox_model & !invalid & !na_mask] = (log(log(K[fox_model & !invalid & !na_mask]/B0[fox_model & !invalid & !na_mask])) - 
                                 log(log(K[fox_model & !invalid & !na_mask]/B1[fox_model & !invalid & !na_mask]))) / 
                                 r_eff[fox_model & !invalid & !na_mask]
     # General Pella-Tomlinson with fishing mortality
     if (any(!fox_model & !invalid & !na_mask)) {
-      idx <- which(!fox_model & !invalid & !na_mask)
-      B0Kp <- (B0[idx]/K[idx])^p[idx]
-      B1Kp <- (B1[idx]/K[idx])^p[idx]
-      denom0 <- 1 - B0Kp
-      denom1 <- 1 - B1Kp
-      valid_domain <- denom0 > 0 & denom1 > 0
-      t[idx[valid_domain]] <- (1/(r_eff[idx[valid_domain]] * p[idx[valid_domain]])) * 
+      idx = which(!fox_model & !invalid & !na_mask)
+      B0Kp = (B0[idx]/K[idx])^p[idx]
+      B1Kp = (B1[idx]/K[idx])^p[idx]
+      denom0 = 1 - B0Kp
+      denom1 = 1 - B1Kp
+      valid_domain = denom0 > 0 & denom1 > 0
+      t[idx[valid_domain]] = (1/(r_eff[idx[valid_domain]] * p[idx[valid_domain]])) * 
         log(denom0[valid_domain]/denom1[valid_domain])
       # If invalid domain, leave as NA
     }
     # Set t to NA for invalid r_eff and NA inputs
-    t[invalid | na_mask] <- NA_real_
+    t[invalid | na_mask] = NA_real_
     return(as.numeric(t))
   })
 
@@ -160,16 +160,16 @@ setMethod("brebuild", signature(object="numeric"),
     }
     
     # Grid search approach - more robust than uniroot
-    initial_grid <- seq(0.01, 0.99, by=0.001)
-    recovery_times <- sapply(initial_grid, function(x) {
-      rt <- rTime(x, r, p, bmsy, F)
+    initial_grid = seq(0.01, 0.99, by=0.001)
+    recovery_times = sapply(initial_grid, function(x) {
+      rt = rTime(x, r, p, bmsy, F)
       if (is.na(rt) || is.infinite(rt)) return(Inf)
       return(rt)
     })
     
     # Find the closest match
-    time_diff <- abs(recovery_times - nyrs)
-    min_diff_idx <- which.min(time_diff)
+    time_diff = abs(recovery_times - nyrs)
+    min_diff_idx = which.min(time_diff)
     
     if (is.infinite(recovery_times[min_diff_idx])) {
       warning("No valid solution found")
@@ -217,7 +217,7 @@ setMethod("brebuild", signature(object="FLPar"),
 #' @export
 #' @examples
 #' gt(R0=2, r=0.2)
-gtR0<-function(R0, r) {
+gtR0=function(R0, r) {
   return(log(R0) / r)
 }
 
@@ -235,9 +235,9 @@ gtR0<-function(R0, r) {
 #' lx<-c(1, 0.8, 0.6, 0.4, 0.2, 0.1)
 #' mx<-c(0, 0, 2, 3, 1, 0)
 #' gtLife(ages, lx, mx)
-gtLife<-function(ages, lx, mx) {
-  numerator<-sum(ages * lx * mx)
-  denominator<-sum(lx * mx)
+gtLife=function(ages, lx, mx) {
+  numerator=sum(ages * lx * mx)
+  denominator=sum(lx * mx)
   return(numerator / denominator)
 }
 

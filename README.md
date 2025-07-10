@@ -9,6 +9,9 @@ A comprehensive R package for analyzing fisheries stock rebuilding trajectories 
 
 - **Multiple Object Support**: Works with FLBRP, biodyn, and FLStock objects
 - **Flexible Rebuilding Analysis**: Projects trajectories from various initial depletion levels
+- **Stock-Recruitment Analysis**: Forward and inverse SRR functions for multiple models
+- **Age-Based Indicators**: ABI methods for analyzing stock age structure
+- **Reference Point Calculations**: Blim and MSY calculations
 - **Tmax Calculation**: Implements different methods for calculating maximum rebuilding time
 - **NS1 Guidelines Compliance**: Follows National Standard 1 guidelines for rebuilding analysis
 - **Visualization Tools**: Includes plotting functions for rebuilding trajectories
@@ -16,12 +19,12 @@ A comprehensive R package for analyzing fisheries stock rebuilding trajectories 
 
 ## Installation
 
-
 ### From GitHub
 ```r
 # Install remotes if you haven't already
 if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")}
+  install.packages("remotes")
+}
 
 # Install from GitHub
 remotes::install_github("lauriekell/FLRebuild")
@@ -37,72 +40,118 @@ install.packages("FLRebuild", repos = NULL, type = "source")
 ## Quick Start
 
 ```r
-# Load the package
+# Load required packages
 library(FLCore)
 library(FLBRP)
 library(FLife)
 library(FLasher)
 library(FLRebuild)
-```
 
-```r
 # Create a life history equilibrium object
+eq = lhEql(lhPar(FLPar(linf = 250, s = 0.9)))
 
-eq=lhEql(lhPar(FLPar(linf=250, s=0.9)))
-```
-
-```r
 # Run rebuilding analysis
+stk = rebuild(eq)
 
-stk=rebuild(eq)
-```
-
-```r
 # Plot results
-ggplot(ssb(stk))+
-   geom_line(aes(year,data,group=iter))
-```
+ggplot(ssb(stk)) +
+  geom_line(aes(year, data, group = iter))
 
-```r
 # Calculate rebuilding times
-
-rT=rebuildTime(stk)
+rT = rebuildTime(stk)
 ```
 
+## Core Functions
 
-### Blim Method
+### Rebuilding Analysis
 
-- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object based on a ratio of virgin recruitment.
+- `rebuild(object, ...)`: Projects rebuilding trajectories from different initial SSB levels
+- `rebuildTime(object, ...)`: Calculates rebuilding time for given trajectories
+- `calculateRecoveryTime(initial_biomass, target_biomass, growth_rate)`: Calculates time to recovery using population growth rate
+- `calculateTmax(object, method, tmin, mfmt)`: Calculates maximum rebuilding time using various methods
 
-**Example:**
+### Stock-Recruitment Relationships
+
+- `recHat(object, ssb)`: Predicts recruitment from SSB for FLBRP/FLSR objects
+- `rickerRec(params, rec)`: Calculates SSB for given recruitment (Ricker model)
+- `bevertonRec(params, rec)`: Calculates SSB for given recruitment (Beverton-Holt model)
+- `segRegRec(params, rec)`: Calculates SSB for given recruitment (Segmented Regression model)
+
+### Reference Points
+
+- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object
+- `msyVirgin(object)`: Calculates MSY and virgin state metrics
+
+### Age-Based Indicators (ABI)
+
+- `abiAge(object, ref = "msy", p = 0.9)`: Calculates reference age for FLBRP object
+- `abiMsy(object, ref = "msy", p = 0.9)`: Calculates proportion above reference age at MSY
+- `abi(object, age, ...)`: Calculates observed proportion above reference age for FLStock
+
+## Examples
+
+### Basic Rebuilding Analysis
 ```r
-blim(eq, ratio=0.3)
+# Create equilibrium object
+eq = lhEql(lhPar(FLPar(linf = 250, s = 0.9)))
+
+# Run rebuilding analysis
+stk = rebuild(eq, targetF = 0, nInitial = 50)
+
+# Calculate rebuilding times
+rT = rebuildTime(stk)
+
+# Plot trajectories
+plotRebuildTrajectories(as.data.frame(ssb(stk)))
 ```
 
-## ABI and Blim Methods
-
-The package provides age-based index (ABI) methods for analysing the age structure of stocks and a method for calculating the biomass limit reference point (Blim):
-
-### ABI Methods
-
-- `abiAge(object, ref = "msy", p = 0.9)`: Calculates the reference age for an FLBRP object at which a given proportion (p) of the cumulative stock numbers is reached.
-- `abiMsy(object, ref = "msy", p = 0.9)`: Calculates the proportion of stock numbers above the reference age at MSY.
-- `abi(object, age, ...)`: Calculates the observed proportion above the reference age for an FLStock object, relative to the MSY reference.
-
-
+### Stock-Recruitment Analysis
 ```r
-abiAge(eq)
-abiMsy(eq)
-abi(stk, eq)
+# Create SRR parameters
+params = FLPar(a = 2000, b = 0.001)
+
+# Predict recruitment from SSB
+rec = recHat(eq, ssb = 1000)
+
+# Calculate SSB for given recruitment (Ricker model)
+ssb_vals = rickerRec(params, rec = 500)
 ```
 
+### Age-Based Indicators
+```r
+# Calculate reference age
+ref_age = abiAge(eq)
+
+# Calculate proportion at MSY
+p_msy = abiMsy(eq)
+
+# Calculate observed proportion
+p_obs = abi(stk, eq)
+```
+
+### Reference Points
+```r
+# Calculate Blim
+blim_val = blim(eq, ratio = 0.3)
+
+# Calculate MSY and virgin metrics
+msy_virgin = msyVirgin(eq)
+```
 
 ## Dependencies
 
-- **FLBRP**: Fisheries Library for R - Biological Reference Points
-- **FLife**: Fisheries Library for R - Life History
-- **ggplotFL**: ggplot2 extensions for FLR objects
+### Required
+- **FLCore** (>= 2.6.0): Core FLR functionality
+- **FLBRP** (>= 2.5.0): Biological reference points
+- **FLife** (>= 2.6.0): Life history parameters
+- **ggplotFL** (>= 0.2.0): Plotting for FLR objects
+- **data.table** (>= 1.14.0): Fast data manipulation
 
+### Suggested
+- **testthat** (>= 3.0.0): Unit testing
+- **knitr** (>= 1.30): Vignette building
+- **rmarkdown** (>= 2.0): Documentation
+- **akima** (>= 0.6.0): Interpolation functions
 
 ## Documentation
 
@@ -137,8 +186,8 @@ This package is licensed under the GPL-3 license. See the [LICENSE](LICENSE) fil
 If you use FLRebuild in your research, please cite it as:
 
 ```
-Author (Year). FLRebuild: Fisheries Stock Rebuilding Analysis. 
-R package version 0.1.0. https://github.com/username/FLRebuild
+FLR Team (2024). FLRebuild: Fisheries Stock Rebuilding Analysis. 
+R package version 0.1.5. https://github.com/lauriekell/FLRebuild
 ```
 
 ## Acknowledgments

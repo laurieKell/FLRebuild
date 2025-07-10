@@ -2,10 +2,9 @@
 % Please edit documentation in R/generic.R
 \name{abiAge}
 \alias{abiAge}
-\title{Calculate Process Error for FLBRP Object
-Calculate the reference age for a FLBRP object.}
+\title{Calculate the reference age for a FLBRP object.}
 \usage{
-abiAge(object, ref = "msy", p = 0.9)
+abiAge(object, ref = "msy", p = 0.9, ...)
 }
 \arguments{
 \item{object}{FLBRP object.}
@@ -13,6 +12,8 @@ abiAge(object, ref = "msy", p = 0.9)
 \item{ref}{Reference point, e.g., "msy" (default) or "f0.1".}
 
 \item{p}{Probability threshold (default = 0.9).}
+
+\item{...}{Additional arguments}
 }
 \value{
 An FLQuant object containing reference ages.

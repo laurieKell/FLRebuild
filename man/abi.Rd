@@ -13,6 +13,8 @@ abi(object, age, ...)
 \item{object}{A FLStock object.}
 
 \item{age}{Reference ages obtained from abiAge.}
+
+\item{...}{Additional arguments}
 }
 \value{
 An FLQuant object containing P obs.

@@ -8,13 +8,12 @@ msyVirgin(object, ...)
 }
 \arguments{
 \item{object}{An object of class FLBRP.}
+
+\item{...}{Additional arguments}
 }
 \value{
 A named vector containing metrics for virgin and MSY states.
 }
 \description{
 Generic for calculating key metrics (F, SSB, catch, ebiomass) at virgin and MSY states for an FLBRP object.
-}
-\note{
-No method is currently implemented for this generic.
 }
