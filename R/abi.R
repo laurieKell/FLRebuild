@@ -47,9 +47,22 @@ setMethod("abiMsy",
             # Create a flag array for ages >= reference age
             flag = FLQuant(NA, dimnames = dimnames(stk.n))
             for (i in seq_along(dim(stk.n)[6])) {
-              flag[,,, , ,i] = FLQuant(ages(stk.n) >= c(A_exp[,,, , ,i]), dimnames = dimnames(stk.n)[1:6])
+              # Ensure we have valid ages and reference ages before comparison
+              ages_vec = as.numeric(ages(stk.n))
+              ref_age = c(A_exp[,,, , ,i])
+              if (length(ref_age) == 1) {
+                ref_age = rep(ref_age, length(ages_vec))
+              }
+              # Create flag for ages >= reference age, handling NA values
+              age_flag = !is.na(ages_vec) & !is.na(ref_age) & ages_vec >= ref_age
+              flag[,,, , ,i] = FLQuant(age_flag, dimnames = dimnames(stk.n)[1:6])
             }
-            apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE) / apply(stk.n, c(2, 6), sum, na.rm = TRUE)
+            # Calculate proportions, handling NA values
+            numerator = apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE)
+            denominator = apply(stk.n, c(2, 6), sum, na.rm = TRUE)
+            # Avoid division by zero
+            denominator[denominator == 0] = NA
+            numerator / denominator
           }
 )
 
@@ -68,9 +81,22 @@ abistock = function(x, A) {
   A_exp = FLCore:::expand(A, year = dimnames(stk.n)$year, iter = dimnames(stk.n)$iter)
   flag = FLQuant(NA, dimnames = dimnames(stk.n))
   for (i in seq_along(dim(stk.n)[6])) {
-    flag[,,, , ,i] = FLQuant(ages(stk.n) >= c(A_exp[,,, , ,i]), dimnames = dimnames(stk.n)[1:6])
+    # Ensure we have valid ages and reference ages before comparison
+    ages_vec = as.numeric(ages(stk.n))
+    ref_age = c(A_exp[,,, , ,i])
+    if (length(ref_age) == 1) {
+      ref_age = rep(ref_age, length(ages_vec))
+    }
+    # Create flag for ages >= reference age, handling NA values
+    age_flag = !is.na(ages_vec) & !is.na(ref_age) & ages_vec >= ref_age
+    flag[,,, , ,i] = FLQuant(age_flag, dimnames = dimnames(stk.n)[1:6])
   }
-  apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE) / apply(stk.n, c(2, 6), sum, na.rm = TRUE)
+  # Calculate proportions, handling NA values
+  numerator = apply(stk.n * flag, c(2, 6), sum, na.rm = TRUE)
+  denominator = apply(stk.n, c(2, 6), sum, na.rm = TRUE)
+  # Avoid division by zero
+  denominator[denominator == 0] = NA
+  numerator / denominator
 }
 
 #' Calculate Proportion Above Reference Age for FLStock
@@ -88,6 +114,18 @@ setMethod("abi",
             pmsy = abiMsy(age, ref, p)
             age = abiAge(age, ref, p)
             pt  = abistock(object, age)
+            # Ensure dimensions match before division
+            if (dim(pt)[6] == 1 && dim(pmsy)[6] > 1) {
+              pt = propagate(pt, dim(pmsy)[6])
+            } else if (dim(pmsy)[6] == 1 && dim(pt)[6] > 1) {
+              pmsy = propagate(pmsy, dim(pt)[6])
+            }
+            # Match year dimensions if needed
+            if (dim(pt)[2] == 1 && dim(pmsy)[2] > 1) {
+              pt = propagate(pt, dim(pmsy)[2])
+            } else if (dim(pmsy)[2] == 1 && dim(pt)[2] > 1) {
+              pmsy = propagate(pmsy, dim(pt)[2])
+            }
             pt %/% pmsy
           })
 

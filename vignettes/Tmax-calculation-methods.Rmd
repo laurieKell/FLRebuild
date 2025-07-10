@@ -117,10 +117,13 @@ fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq
 
 # Convert to FLStock and project
 stk <- as(eq, "FLStock")
-stk <- fwd(stk, harvest = fbar(eq)[,-1], sr = eq)
+# Use control object for fwd projection
+ctrl <- fwdControl(data.frame(year = 2:100, quant = "f", value = c(fbar(eq)[,-1])))
+stk <- fwd(stk, ctrl = ctrl, sr = eq)
 
 # Stop fishing and let stock rebuild
-stk <- fwd(stk, harvest = fbar(eq)[,-seq(50)]*0, sr = eq)
+ctrl_rebuild <- fwdControl(data.frame(year = 51:100, quant = "f", value = 0))
+stk <- fwd(stk, ctrl = ctrl_rebuild, sr = eq)
 
 # Extract SSB data relative to BMSY
 dat <- as.data.frame(ssb(stk)[,-1]/c(refpts(eq)["msy","ssb"]), drop = TRUE)
@@ -183,7 +186,8 @@ Let's apply these methods to real stock data to demonstrate practical applicatio
 #   fbar(eq) <- FLQuant(rep(1, 50))
 #   fbar(eq) <- propagate(fbar(eq), 51) %*% FLQuant(ftar, dimnames = list(iter = seq(51)))
 #   stk <- as(eq, "FLStock")
-#   stk <- try(fwd(stk, harvest = fbar(eq)[,-1]*0, sr = eq))
+#   ctrl <- fwdControl(data.frame(year = 2:100, quant = "f", value = 0))
+#   stk <- try(fwd(stk, ctrl = ctrl, sr = eq))
 #   
 #   if("FLStock" %in% is(stk)) {
 #     return(list(ssb(stk)%/%refpts(eq)["msy","ssb"], gt(iter(eq,1))))
