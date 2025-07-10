@@ -76,22 +76,21 @@ setMethod("rebuildTime", signature(object="FLStock"),
     if (!is.numeric(nx) || nx <= 0)
       stop("nx must be a positive integer")
 
-print(1)    
+print(1) 
+    t=ssb(object)    
+print(2) 
+    FLCore:::as.data.frame(t)
+print(3)    
     df     =FLCore:::as.data.frame(FLCore:::ssb(object), drop=TRUE)
-print(1)    
+print(4)    
     iters  =sort(unique(df$iter))
-    print(1)    
     
-    bmsyVec   =setNames(as.numeric(ssb(object)[,1,,,,iters]), iters)
-    print(1)    
-    initialVec=setNames(as.numeric(ssb(object[,1])), iters)
-    print(1)    
-    df$ssb    =df$data / bmsyVec[as.character(df$iter)]
-    print(1)    
-    df$initial=initialVec[as.character(df$iter)] / bmsyVec[as.character(df$iter)]
-    print(1)    
-    df        =na.omit(df)
-    print(1)    
+    bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
+    df        =as.data.frame(ssb(object), drop=TRUE)
+    df$ssb    =df$data/bmsy
+    df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
+    df         =na.omit(df)
+ 
     
     return(interp(df))})
 
@@ -130,6 +129,7 @@ setMethod("rebuildTime", signature(object="biodyn"),
             df=as.data.frame(stock(rtn), drop=TRUE)
             df$initial=c(stock(rtn)[,1])[an(df$iter)]
             df=df[,-2]
+            names(df)=c("year", "initial")
             
             # Interpolate results
             #df=as.data.frame(with(df, akima::interp(initial, 
