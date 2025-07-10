@@ -78,13 +78,12 @@ setMethod("rebuildTime", signature(object="FLStock"),
             if (!is.numeric(nx) || nx <= 0)
               stop("nx must be a positive integer")
             
-            bmsy=c(ssb(object)[,1,,,,dim(object)[6]])
-            
-            df        =as.data.frame(ssb(object), drop=TRUE)
-            df$ssb    =df$data/bmsy
-            df$initial=c(ssb(object[,1]))[
-              an(ac(df$iter))]/bmsy
-            df        =na.omit(df)
+            df <- as.data.frame(ssb(object), drop=TRUE)
+            iters <- sort(unique(df$iter))
+            bmsy_vec <- as.numeric(ssb(object)[,1,,,,iters])
+            df$ssb <- df$data / bmsy_vec[match(df$iter, iters)]
+            df$initial <- as.numeric(ssb(object[,1]))[match(df$iter, iters)] / bmsy_vec[match(df$iter, iters)]
+            df <- na.omit(df)
             
             #df=transmute(as.data.frame(ssb(object), drop=TRUE),
             #              ssb=data/bmsy,

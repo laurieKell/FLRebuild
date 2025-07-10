@@ -63,16 +63,17 @@ stk=rebuild(eq)
 ```
 
 ```r
+# Plot results
+ggplot(ssb(stk))+
+   geom_line(aes(year,data,group=iter))
+```
+
+```r
 # Calculate rebuilding times
 
 rT=rebuildTime(stk)
 ```
 
-```r
-# Plot results
-ggplot(ssb(stk))+
-   geom_line(aes(year,data,group=iter))
-```
 
 ### Blim Method
 
