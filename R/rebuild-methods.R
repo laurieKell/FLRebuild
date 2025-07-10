@@ -105,10 +105,9 @@ setMethod("rebuildTime", signature(object="FLStock"),
             
             bmsy=c(ssb(object)[,1,,,,dim(object)[6]])
             
-            dat=transmute(as.data.frame(ssb(object), drop=TRUE),
-                          ssb=data/bmsy,
-                          initial=c(ssb(object[,1]))[an(ac(iter))]/bmsy,
-                          year=year)
+            dat        =as.data.frame(ssb(object), drop=TRUE)
+            dat$ssb    =dat$data/bmsy
+            dat$initial=c(ssb(object[,1]))[an(ac(dat$iter))]/bmsy
             
             rtn=suppressWarnings(
               as.data.frame(with(dat, 

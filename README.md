@@ -43,7 +43,6 @@ install.packages("FLRebuild", repos = NULL, type = "source")
 
 ```r
 # Load the package
-library(plyr)
 library(FLCore)
 library(FLBRP)
 library(FLife)
@@ -59,12 +58,14 @@ eq=lhEql(lhPar(FLPar(linf=250, s=0.9)))
 
 ```r
 # Run rebuilding analysis
+
 stk=rebuild(eq)
 ```
 
 ```r
 # Calculate rebuilding times
-rT=rebuildTime(stk)
+
+rT=FLRebuild:::rebuildTime(stk)
 ```
 
 ```r
