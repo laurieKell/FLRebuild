@@ -46,20 +46,28 @@ install.packages("FLRebuild", repos = NULL, type = "source")
 library(plyr)
 library(FLCore)
 library(FLBRP)
+library(FLife)
 library(FLasher)
 library(FLRebuild)
+```
 
+```r
 # Create a life history equilibrium object
-library(FLife)
 
 eq=lhEql(lhPar(FLPar(linf=250, s=0.9)))
+```
 
+```r
 # Run rebuilding analysis
 stk=rebuild(eq)
+```
 
+```r
 # Calculate rebuilding times
 rT=rebuildTime(stk)
+```
 
+```r
 # Plot results
 ggplot(ssb(stk))+
    geom_line(aes(year,data,group=iter))
