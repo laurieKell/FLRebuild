@@ -79,7 +79,7 @@ setMethod("rebuildTime", signature(object="FLStock"),
 print(1) 
     t=ssb(object)    
 print(2) 
-    FLCore:::as.data.frame(t)
+    df     =FLCore:::as.data.frame(t)
 print(3)    
     df     =FLCore:::as.data.frame(FLCore:::ssb(object), drop=TRUE)
 print(4)    
