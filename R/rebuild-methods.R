@@ -70,34 +70,23 @@ setMethod("rebuild", signature(object="FLBRP"),
 #' @rdname rebuildTime
 #' @export
 setMethod("rebuildTime", signature(object="FLStock"),
-          
-          function(object, nx=101) {
-            if (!is(object, "FLStock"))
-              stop("object must be an FLStock object")
-            
-            if (!is.numeric(nx) || nx <= 0)
-              stop("nx must be a positive integer")
-            
-            df <- as.data.frame(ssb(object), drop=TRUE)
-            iters <- sort(unique(df$iter))
-            bmsy_vec <- as.numeric(ssb(object)[,1,,,,iters])
-            df$ssb <- df$data / bmsy_vec[match(df$iter, iters)]
-            df$initial <- as.numeric(ssb(object[,1]))[match(df$iter, iters)] / bmsy_vec[match(df$iter, iters)]
-            df <- na.omit(df)
-            
-            #df=transmute(as.data.frame(ssb(object), drop=TRUE),
-            #              ssb=data/bmsy,
-            #              initial=c(ssb(object[,1]))[an(ac(iter))]/bmsy,
-            #              year=year)
-            
-            #rtn=suppressWarnings(
-            #  as.data.frame(with(df, 
-            #                     akima::interp(x=initial, y=ssb, z=year, yo=1,
-            #                                   duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
-            
-            #names(rtn)=c("year", "initial")
-            
-            return(interp(df))}) 
+  function(object, nx=101) {
+    if (!is(object, "FLStock"))
+      stop("object must be an FLStock object")
+    if (!is.numeric(nx) || nx <= 0)
+      stop("nx must be a positive integer")
+
+    df <- as.data.frame(ssb(object), drop=TRUE)
+    iters <- sort(unique(df$iter))
+    # Name the bmsy and initial vectors by iter
+    bmsy_vec <- setNames(as.numeric(ssb(object)[,1,,,,iters]), iters)
+    initial_vec <- setNames(as.numeric(ssb(object[,1])), iters)
+    # Use the iter column to match
+    df$ssb <- df$data / bmsy_vec[as.character(df$iter)]
+    df$initial <- initial_vec[as.character(df$iter)] / bmsy_vec[as.character(df$iter)]
+    df <- na.omit(df)
+    return(interp(df))
+  })
 
 #' @rdname rebuildTime
 #' @export
