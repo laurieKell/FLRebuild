@@ -138,6 +138,6 @@ setMethod("rebuildTime", signature(object="FLStock"),
             #                     akima::interp(x=initial, y=ssb, z=year, yo=1,
             #                                   duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
             
-            names(rtn)=c("year", "initial")
+            #names(rtn)=c("year", "initial")
             
             return(interp(df))}) 
