@@ -19,6 +19,13 @@
 #' library(FLCore)
 #' params=FLPar(initial=0.3, r=0.2, p=1.5, bmsy=1)
 #' rTime(params, F=0.05)
+#' 
+#' # Vectorized example with data frame (requires plyr and pellatParams function)
+#' # dat <- mdply(expand.grid(fmsy=seq(0.05,0.5,length.out=21), shape=seq(0.1,0.6,length.out=21)),
+#' #             function(fmsy, shape) pellatParams(fmsy=fmsy, bmsy=shape, virgin=1))
+#' # dat <- transform(dat, recovery_time = rTime(0.3, r, p))
+#' # head(dat)
+#' # This now works without the error: 'the condition has length > 1' (vectorized support added)
 setGeneric("rTime", function(object, ...) standardGeneric("rTime"))
 
 #' @rdname rTime
@@ -28,44 +35,58 @@ setMethod("rTime", signature(object="numeric"),
     if (missing(r) || missing(p)) 
       stop("r and p must be provided when object is numeric")
     
-    initial=object
-    
+    # Find the maximum length among all arguments
+    n <- max(length(object), length(r), length(p), length(bmsy), length(F))
+    # Recycle all arguments to the same length
+    initial <- rep(object, length.out=n)
+    r <- rep(r, length.out=n)
+    p <- rep(p, length.out=n)
+    bmsy <- rep(bmsy, length.out=n)
+    F <- rep(F, length.out=n)
+
+    # Check for NA values in any argument
+    na_mask <- is.na(initial) | is.na(r) | is.na(p) | is.na(bmsy) | is.na(F)
+    if (all(na_mask)) {
+      return(rep(NA_real_, n))
+    }
+
     # Calculate carrying capacity (virgin biomass) from bmsy and p
-    if (abs(p) < 1e-6) 
-      K=bmsy * exp(1)  # Fox model
-    else 
-      K=bmsy * (p+1)^(1/p)
+    K <- ifelse(abs(p) < 1e-6, bmsy * exp(1), bmsy * (p+1)^(1/p))
     
     # Effective growth rate under fishing mortality
-    r_eff=r - F
-    
+    r_eff <- r - F
+
     # Check if recovery is possible under current fishing mortality
-    if (r_eff <= 0) {
-      warning("Fishing mortality too high: recovery not possible")
-      return(NA_real_)
+    invalid <- r_eff <= 0
+    if (any(invalid, na.rm=TRUE)) {
+      warning("Fishing mortality too high: recovery not possible for some elements")
     }
-    
+
     # Initial and target biomass
-    B0=initial
-    B1=bmsy
-    
-    if (abs(p) < 1e-6) {
-      # Fox (Gompertz) model with fishing mortality
-      t=(log(log(K/B0)) - log(log(K/B1)))/r_eff
-      return(as.numeric(t))
-    }
-    
+    B0 <- initial
+    B1 <- bmsy
+
+    # Fox (Gompertz) model with fishing mortality
+    fox_model <- abs(p) < 1e-6
+    t <- rep(NA_real_, n)
+    # Fox model calculation
+    t[fox_model & !invalid & !na_mask] <- (log(log(K[fox_model & !invalid & !na_mask]/B0[fox_model & !invalid & !na_mask])) - 
+                                log(log(K[fox_model & !invalid & !na_mask]/B1[fox_model & !invalid & !na_mask]))) / 
+                                r_eff[fox_model & !invalid & !na_mask]
     # General Pella-Tomlinson with fishing mortality
-    B0Kp=(B0/K)^p
-    B1Kp=(B1/K)^p
-    denom0=1 - B0Kp
-    denom1=1 - B1Kp
-    
-    # Check for valid domain
-    if (denom0 <= 0 || denom1 <= 0 || r_eff <= 0) return(NA_real_)
-    
-    t=(1/(r_eff * p)) * log(denom0/denom1)
-    
+    if (any(!fox_model & !invalid & !na_mask)) {
+      idx <- which(!fox_model & !invalid & !na_mask)
+      B0Kp <- (B0[idx]/K[idx])^p[idx]
+      B1Kp <- (B1[idx]/K[idx])^p[idx]
+      denom0 <- 1 - B0Kp
+      denom1 <- 1 - B1Kp
+      valid_domain <- denom0 > 0 & denom1 > 0
+      t[idx[valid_domain]] <- (1/(r_eff[idx[valid_domain]] * p[idx[valid_domain]])) * 
+        log(denom0[valid_domain]/denom1[valid_domain])
+      # If invalid domain, leave as NA
+    }
+    # Set t to NA for invalid r_eff and NA inputs
+    t[invalid | na_mask] <- NA_real_
     return(as.numeric(t))
   })
 

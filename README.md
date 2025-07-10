@@ -47,60 +47,22 @@ library(FLRebuild)
 
 # Create a life history equilibrium object
 library(FLife)
-eq <- lhEql(lhPar(FLPar(linf=250, s=0.9)))
+eq=lhEql(lhPar(FLPar(linf=250, s=0.9)))
 
 # Run rebuilding analysis
-stk <- rebuild(eq, nInitial = 50)
+stk=rebuild(eq,nInitial=50)
 
 # Calculate rebuilding times
-rebuild_times <- rebuildTime(stk)
+rT=rebuildTime(stk)
 
 # Plot results
-plotRebuildTrajectories(as.data.frame(ssb(stk), drop = TRUE))
+plot(ssb(stk))
 ```
 
-## Main Functions
-
-### `rebuild()`
-Projects rebuilding trajectories from different initial SSB levels.
-
-```r
-rebuild(object, targetF = NULL, targetSSB = NULL, nInitial = 100, 
-        growthRate = 0.25, minVal = 1e-6, maxVal = 1, 
-        burnin = 20, truncate = TRUE)
-```
-
-### `rebuildTime()`
-Calculates rebuilding time for different initial conditions.
-
-```r
-rebuildTime(object, nx = 101)
-```
-
-### `calculateTmax()`
-Calculates maximum rebuilding time using different methods as described in NS1 guidelines.
-
-```r
-calculateTmax(object, method = "generation", tmin = NULL, mfmt = NULL)
-```
-
-### `calculateRecoveryTime()`
-Calculates time to recovery using population growth rate.
-
-```r
-calculateRecoveryTime(initial_biomass, target_biomass, growth_rate)
-```
-
-### `plotRebuildTrajectories()`
-Creates ggplot visualizations of rebuilding trajectories.
-
-```r
-plotRebuildTrajectories(rebuild_data, target_line = 1, title = "Rebuilding Trajectories")
-```
 
 ## ABI and Blim Methods
 
-The package provides age-based index (ABI) methods for analyzing the age structure of stocks and a method for calculating the biomass limit reference point (Blim):
+The package provides age-based index (ABI) methods for analysing the age structure of stocks and a method for calculating the biomass limit reference point (Blim):
 
 ### ABI Methods
 
@@ -112,6 +74,7 @@ The package provides age-based index (ABI) methods for analyzing the age structu
 ```r
 library(FLCore)
 library(FLBRP)
+library(FLasher)
 data(ple4)
 data(ple4brp)
 abiAge(ple4brp)
@@ -126,61 +89,14 @@ abi(ple4, ple4brp)
 **Example:**
 ```r
 library(FLBRP)
-data(ple4)
-brp <- FLBRP(ple4)
-blim_ref <- blim(brp, ratio = 0.3)
+data(ple4brp)
+blim(brp(ple4brp), ratio = 0.3)
 ```
 
 ## Examples
 
-### Basic Rebuilding Analysis
 
-```r
-library(FLRebuild)
-library(FLife)
 
-# Create equilibrium object
-eq <- lhEql(lhPar(FLPar(linf=250, s=0.9)))
-
-# Run rebuilding analysis
-stk <- rebuild(eq, 
-               targetF = 0,           # No fishing during rebuild
-               targetSSB = 1000,      # Target SSB
-               nInitial = 100,        # Number of initial conditions
-               burnin = 20)           # Burn-in period
-
-# Calculate rebuilding times
-rebuild_times <- rebuildTime(stk, nx = 101)
-
-# Plot results
-plotRebuildTrajectories(as.data.frame(ssb(stk), drop = TRUE))
-```
-
-### Working with biodyn Objects
-
-```r
-library(biodyn)
-
-# Create a biodyn object
-bd <- biodyn(FLPar(r=0.5, k=1000, p=1))
-
-# Calculate rebuilding time
-rebuild_data <- rebuildTime(bd, target = 1000)
-```
-
-### Tmax Calculation Methods
-
-The package implements three methods for calculating Tmax as described in NS1 guidelines:
-
-1. **Generation Method**: Tmin + one generation time
-2. **Fishing Method**: Time to rebuild at 75% of Maximum Fishing Mortality Threshold (MFMT)
-3. **Multiply Method**: Tmin multiplied by 2
-
-```r
-# Calculate Tmax using different methods
-tmax_gen <- calculateTmax(object = NULL, method = "generation", tmin = 10)
-tmax_mult <- calculateTmax(object = NULL, method = "multiply", tmin = 10)
-```
 
 ## Dependencies
 

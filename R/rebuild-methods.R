@@ -55,6 +55,7 @@ setMethod("rebuild", signature(object="FLBRP"),
 setMethod("rebuildTime", signature(object="biodyn"), 
           function(object, target=refpts(object)["bmsy"], nInitial=100, 
                    growthRate=0.3, minVal=1e-6, maxVal=1, nx=101) {
+          
             if (!is(object, "biodyn"))
               stop("object must be a biodyn object")
             
@@ -66,20 +67,20 @@ setMethod("rebuildTime", signature(object="biodyn"),
             
             if (!all(sapply(list(growthRate, minVal, maxVal), is.numeric)))
               stop("growthRate, minVal, and maxVal must be numeric")
-            
+
             minVal=1e-6
             if (minVal >= maxVal)
               stop("minVal must be less than maxVal")
-          
+            
             bmsy=c(refpts(object)["bmsy"])
-               
+            
             rtn=propagate(object, nInitial)
             
             # Create stock projection
             target_seq=c(target)*seq(minVal^growthRate, maxVal^growthRate, length.out=nInitial)^(1/growthRate)
             rtn@stock=FLQuant(rep(target_seq, each=dim(rtn)[2]), dimnames=dimnames(stock(rtn)))
             rtn=fwd(rtn, catch=catch(rtn)[,-1]%=%0.0)
-
+            
             # Transform data
             dat=as.data.frame(stock(rtn), drop=TRUE)
             dat$initial=c(stock(rtn)[,1])[an(dat$iter)]
