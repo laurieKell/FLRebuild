@@ -76,17 +76,24 @@ setMethod("rebuildTime", signature(object="FLStock"),
     if (!is.numeric(nx) || nx <= 0)
       stop("nx must be a positive integer")
 
-    df <- as.data.frame(ssb(object), drop=TRUE)
-    iters <- sort(unique(df$iter))
-    # Name the bmsy and initial vectors by iter
-    bmsy_vec <- setNames(as.numeric(ssb(object)[,1,,,,iters]), iters)
-    initial_vec <- setNames(as.numeric(ssb(object[,1])), iters)
-    # Use the iter column to match
-    df$ssb <- df$data / bmsy_vec[as.character(df$iter)]
-    df$initial <- initial_vec[as.character(df$iter)] / bmsy_vec[as.character(df$iter)]
-    df <- na.omit(df)
-    return(interp(df))
-  })
+print(1)    
+    df     =as.data.frame(ssb(object), drop=TRUE)
+    print(1)    
+    iters  =sort(unique(df$iter))
+    print(1)    
+    
+    bmsyVec   =setNames(as.numeric(ssb(object)[,1,,,,iters]), iters)
+    print(1)    
+    initialVec=setNames(as.numeric(ssb(object[,1])), iters)
+    print(1)    
+    df$ssb    =df$data / bmsyVec[as.character(df$iter)]
+    print(1)    
+    df$initial=initialVec[as.character(df$iter)] / bmsyVec[as.character(df$iter)]
+    print(1)    
+    df        =na.omit(df)
+    print(1)    
+    
+    return(interp(df))})
 
 #' @rdname rebuildTime
 #' @export
