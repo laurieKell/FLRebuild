@@ -31,6 +31,7 @@ setClass("Rebuild",
 #' @importFrom plyr ddply
 #' @importFrom mpb biodyn
 #' @importFrom FLCore window propagate fwd FLQuant params refpts stock catch
+#' @importFrom data.table as.data.table setDT
 #'
 #' @examples
 #' \dontrun{
@@ -76,14 +77,18 @@ setMethod("rebuild", signature(object="numeric"),
     object@stock = object@stock %*% FLQuant(rep(seq(0, 1, length.out=niters), each=nyrs), dimnames=dimnames(stock(object)))
     object = fwd(object, harvest=stock(object)[, -1] %=% 0)
     dat = cbind(target=target, as.data.frame(stock(object), drop=TRUE))
-    dat = ddply(dat, .(iter), with, {
-      rtn = try(data.frame(year=year[(data-target)^2 == min((data-target)^2)][1]))
-      if ("try-error" %in% is(rtn)) return(NULL)
-      return(rtn)
-    })
-    dat = cbind(dat, initial=c(stock(object)[,1,,,,dat$iter])/target)
-    dat = dat[order(dat$initial), c("year", "initial")][-1, ]
-    cbind(shape=shape, dat[dat$year < nyrs, ])
+    
+    # Use data.table for fast grouping and min search
+    dt <- data.table::as.data.table(dat)
+    dt[, diff2 := (data - target)^2]
+    dt_min <- dt[, .SD[which.min(diff2)], by=iter]
+    
+    # Add initial
+    dt_min[, initial := c(stock(object)[,1,,,,iter])/target]
+    dt_min <- dt_min[order(initial), .(year, initial)]
+    dt_min <- dt_min[-1, ]
+    out <- cbind(shape=shape, dt_min[year < nyrs, ])
+    as.data.frame(out)
   })
 
 

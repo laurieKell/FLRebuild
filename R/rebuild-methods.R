@@ -82,7 +82,8 @@ setMethod("rebuildTime", signature(object="FLStock"),
             
             df        =as.data.frame(ssb(object), drop=TRUE)
             df$ssb    =df$data/bmsy
-            df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
+            df$initial=c(ssb(object[,1]))[
+              an(ac(df$iter))]/bmsy
             df        =na.omit(df)
             
             #df=transmute(as.data.frame(ssb(object), drop=TRUE),
