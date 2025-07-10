@@ -65,7 +65,7 @@ stk=rebuild(eq)
 ```r
 # Calculate rebuilding times
 
-rT=FLRebuild:::rebuildTime(stk)
+rT=rebuildTime(stk)
 ```
 
 ```r

@@ -69,6 +69,38 @@ setMethod("rebuild", signature(object="FLBRP"),
 
 #' @rdname rebuildTime
 #' @export
+setMethod("rebuildTime", signature(object="FLStock"),
+          
+          function(object, nx=101) {
+            if (!is(object, "FLStock"))
+              stop("object must be an FLStock object")
+            
+            if (!is.numeric(nx) || nx <= 0)
+              stop("nx must be a positive integer")
+            
+            bmsy=c(ssb(object)[,1,,,,dim(object)[6]])
+            
+            df        =as.data.frame(ssb(object), drop=TRUE)
+            df$ssb    =df$data/bmsy
+            df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
+            df        =na.omit(df)
+            
+            #df=transmute(as.data.frame(ssb(object), drop=TRUE),
+            #              ssb=data/bmsy,
+            #              initial=c(ssb(object[,1]))[an(ac(iter))]/bmsy,
+            #              year=year)
+            
+            #rtn=suppressWarnings(
+            #  as.data.frame(with(df, 
+            #                     akima::interp(x=initial, y=ssb, z=year, yo=1,
+            #                                   duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
+            
+            #names(rtn)=c("year", "initial")
+            
+            return(interp(df))}) 
+
+#' @rdname rebuildTime
+#' @export
 setMethod("rebuildTime", signature(object="biodyn"), 
           function(object, target=refpts(object)["bmsy"], nInitial=100, 
                    growthRate=0.3, minVal=1e-6, maxVal=1, nx=101) {
@@ -99,45 +131,16 @@ setMethod("rebuildTime", signature(object="biodyn"),
             rtn=fwd(rtn, catch=catch(rtn)[,-1]%=%0.0)
             
             # Transform data
-            dat=as.data.frame(stock(rtn), drop=TRUE)
-            dat$initial=c(stock(rtn)[,1])[an(dat$iter)]
-            dat=dat[,-2]
+            df=as.data.frame(stock(rtn), drop=TRUE)
+            df$initial=c(stock(rtn)[,1])[an(df$iter)]
+            df=df[,-2]
             
             # Interpolate results
-            dat=as.data.frame(with(dat, akima::interp(initial, 
-                        data, year, yo=bmsy, duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)]
-            names(dat)=c("year", "initial")
+            #df=as.data.frame(with(df, akima::interp(initial, 
+            #            data, year, yo=bmsy, duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)]
+            #names(df)=c("year", "initial")
             
-            transform(dat,initial=initial/bmsy)})
+            #transform(df,initial=initial/bmsy)
+            
+            return(interp(df))})
 
-#' @rdname rebuildTime
-#' @export
-setMethod("rebuildTime", signature(object="FLStock"),
-          
-          function(object, nx=101) {
-            if (!is(object, "FLStock"))
-              stop("object must be an FLStock object")
-            
-            if (!is.numeric(nx) || nx <= 0)
-              stop("nx must be a positive integer")
-            
-            bmsy=c(ssb(object)[,1,,,,dim(object)[6]])
-            
-            df        =as.data.frame(ssb(object), drop=TRUE)
-            df$ssb    =df$data/bmsy
-            df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
-            df        =na.omit(df)
-
-            #df=transmute(as.data.frame(ssb(object), drop=TRUE),
-            #              ssb=data/bmsy,
-            #              initial=c(ssb(object[,1]))[an(ac(iter))]/bmsy,
-            #              year=year)
-            
-            #rtn=suppressWarnings(
-            #  as.data.frame(with(df, 
-            #                     akima::interp(x=initial, y=ssb, z=year, yo=1,
-            #                                   duplicate="mean", nx=nx, jitter=1e-6)))[,c(3,1)])
-            
-            #names(rtn)=c("year", "initial")
-            
-            return(interp(df))}) 
