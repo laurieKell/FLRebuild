@@ -1,12 +1,3 @@
-install.packages("C:/active/flr/FLRebuild",type="source", repos=NULL)
-load("C:/active/tmp/t,RData")
-
-library(FLCore)
-library(FLRebuild)
-
-rT=rebuildTime(stk)
-
-
 # FLRebuild: Fisheries Stock Rebuilding Analysis
 
 [![R-CMD-check](https://github.com/username/FLRebuild/workflows/R-CMD-check/badge.svg)](https://github.com/username/FLRebuild/actions)
