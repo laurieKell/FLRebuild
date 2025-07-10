@@ -43,22 +43,36 @@ install.packages("FLRebuild", repos = NULL, type = "source")
 
 ```r
 # Load the package
+library(plyr)
+library(FLCore)
+library(FLBRP)
+library(FLasher)
 library(FLRebuild)
 
 # Create a life history equilibrium object
 library(FLife)
+
 eq=lhEql(lhPar(FLPar(linf=250, s=0.9)))
 
 # Run rebuilding analysis
-stk=rebuild(eq,nInitial=50)
+stk=rebuild(eq)
 
 # Calculate rebuilding times
 rT=rebuildTime(stk)
 
 # Plot results
-plot(ssb(stk))
+ggplot(ssb(stk))+
+   geom_line(aes(year,data,group=iter))
 ```
 
+### Blim Method
+
+- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object based on a ratio of virgin recruitment.
+
+**Example:**
+```r
+blim(eq, ratio=0.3)
+```
 
 ## ABI and Blim Methods
 
@@ -70,32 +84,12 @@ The package provides age-based index (ABI) methods for analysing the age structu
 - `abiMsy(object, ref = "msy", p = 0.9)`: Calculates the proportion of stock numbers above the reference age at MSY.
 - `abi(object, age, ...)`: Calculates the observed proportion above the reference age for an FLStock object, relative to the MSY reference.
 
-**Example:**
+
 ```r
-library(FLCore)
-library(FLBRP)
-library(FLasher)
-data(ple4)
-data(ple4brp)
-abiAge(ple4brp)
-abiMsy(ple4brp)
-abi(ple4, ple4brp)
+abiAge(eq)
+abiMsy(eq)
+abi(stk, eq)
 ```
-
-### Blim Method
-
-- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object based on a ratio of virgin recruitment.
-
-**Example:**
-```r
-library(FLBRP)
-data(ple4brp)
-blim(brp(ple4brp), ratio = 0.3)
-```
-
-## Examples
-
-
 
 
 ## Dependencies
