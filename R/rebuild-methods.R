@@ -76,15 +76,10 @@ setMethod("rebuildTime", signature(object="FLStock"),
     if (!is.numeric(nx) || nx <= 0)
       stop("nx must be a positive integer")
 
-print(1) 
-    t=ssb(object)    
-print(2) 
-    df     =FLCore:::as.data.frame(t)
-print(3)    
+
     df     =FLCore:::as.data.frame(FLCore:::ssb(object), drop=TRUE)
-print(4)    
     iters  =sort(an(unique(df$iter)))
-print(iters)    
+
     bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
     df        =as.data.frame(ssb(object), drop=TRUE)
     df$ssb    =df$data/bmsy
