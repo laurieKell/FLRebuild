@@ -38,9 +38,4 @@ importFrom(plyr,dlply)
 importFrom(plyr,ldply)
 importFrom(plyr,mdply)
 
-export(gtLife)
-export(rTime)
-export(brebuild)
-exportMethods(rTime)
-exportMethods(brebuild)
 

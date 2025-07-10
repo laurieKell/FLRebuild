@@ -15,8 +15,6 @@ Imports:
     plyr,
     dplyr,
     popbio,
-    interp,
-    akima,
     methods,
     ggplot2,
     mpb
