@@ -29,13 +29,13 @@ if (!requireNamespace("devtools", quietly = TRUE)) {
 }
 
 # Install from GitHub
-devtools::install_github("username/FLRebuild")
+devtools::install_github("lauriekell/FLRebuild")
 ```
 
 ### From Source
 ```r
 # Clone the repository and install
-git clone https://github.com/username/FLRebuild.git
+git clone https://github.com/lauriekell/FLRebuild.git
 install.packages("FLRebuild", repos = NULL, type = "source")
 ```
 
@@ -107,10 +107,7 @@ abi(stk, eq)
 - **FLBRP**: Fisheries Library for R - Biological Reference Points
 - **FLife**: Fisheries Library for R - Life History
 - **ggplotFL**: ggplot2 extensions for FLR objects
-- **plyr**: Tools for splitting, applying and combining data
-- **popbio**: Population Biology
-- **interp**: Interpolation methods
-- **akima**: Interpolation of irregularly and regularly spaced data
+
 
 ## Documentation
 
