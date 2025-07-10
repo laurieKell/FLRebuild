@@ -83,12 +83,12 @@ print(2)
 print(3)    
     df     =FLCore:::as.data.frame(FLCore:::ssb(object), drop=TRUE)
 print(4)    
-    iters  =sort(unique(df$iter))
-    
+    iters  =sort(an(unique(df$iter)))
+print(iters)    
     bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
     df        =as.data.frame(ssb(object), drop=TRUE)
     df$ssb    =df$data/bmsy
-    df$initial=c(ssb(object[,1]))[an(ac(df$iter))]/bmsy
+    df$initial=c(ssb(object[,1]))[iters]/bmsy
     df         =na.omit(df)
  
     
