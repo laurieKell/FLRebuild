@@ -9,7 +9,7 @@
 #' @keywords internal
 interp = function(df) {
   # Input validation
-  if (!is.data.frame(df) || !all(c("initial", "year", "ssb") %in% names(df))) {
+  if (!is.data.frame(df) || !all(c("initial", "year", "biomass") %in% names(df))) {
     stop("df must be a data frame with columns: initial, year, biomass")
   }
   
@@ -17,7 +17,7 @@ interp = function(df) {
   initials = sort(unique(df$initial))
   Yr = rep(NA, length(initials))
   
-  # Find the first year where SSB >= 1 for each initial value
+  # Find the first year where biomass >= 1 for each initial value
   for (i in seq_along(initials)) {
     sub_df = df[df$initial == initials[i], ]
     idx = which(sub_df$biomass >= 1)
