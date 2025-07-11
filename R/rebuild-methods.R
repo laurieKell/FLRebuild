@@ -162,14 +162,15 @@ setMethod("rebuildTime", signature(object = "biodyn"),
                                 length.out = nInitial)^(1/growthRate)
     rtn@stock = FLQuant(rep(target_seq, each = dim(rtn)[2]), 
                        dimnames = dimnames(stock(rtn)))
-    rtn = fwd(rtn, catch = catch(rtn)[,-1] %=% 0.0)
+    rtn = fwd(rtn, catch=catch(rtn)[,-1] %=% 0.0)
     
     # Transform data
     df = as.data.frame(stock(rtn), drop = TRUE)
     df$initial = c(stock(rtn)[,1])[an(df$iter)]
     df = df[,-2]
     names(df) = c("year","biomass","initial")
-    
+    df[,-1]=df[,-1]/bmsy
+
     # Interpolate results
     return(interp(df))
   })
