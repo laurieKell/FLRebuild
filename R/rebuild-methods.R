@@ -10,7 +10,7 @@
 interp = function(df) {
   # Input validation
   if (!is.data.frame(df) || !all(c("initial", "year", "ssb") %in% names(df))) {
-    stop("df must be a data frame with columns: initial, year, ssb")
+    stop("df must be a data frame with columns: initial, year, biomass")
   }
   
   # Get unique initial values and sort them
@@ -20,7 +20,7 @@ interp = function(df) {
   # Find the first year where SSB >= 1 for each initial value
   for (i in seq_along(initials)) {
     sub_df = df[df$initial == initials[i], ]
-    idx = which(sub_df$ssb >= 1)
+    idx = which(sub_df$biomass >= 1)
     if (length(idx) > 0) {
       Yr[i] = sub_df$year[min(idx)]
     } else {
@@ -85,7 +85,7 @@ setMethod("rebuild", signature(object = "FLBRP"),
     
     # Apply target F
     ftar = fbar(stk) %=% targetF
-    stk = fwd(stk, harvest = ftar[,-seq(burnin)], sr = eql)
+    stk = fwd(stk, f = ftar[,-seq(burnin)], sr = eql)
     
     # Post-process
     if (truncate) {
@@ -108,24 +108,16 @@ setMethod("rebuild", signature(object = "FLBRP"),
 #' @rdname rebuildTime
 #' @export
 setMethod("rebuildTime", signature(object = "FLStock"),
-  function(object, nx = 101) {
-    # Input validation
-    if (!is(object, "FLStock")) {
-      stop("object must be an FLStock object")
-    }
-    if (!is.numeric(nx) || nx <= 0) {
-      stop("nx must be a positive integer")
-    }
+  function(object) {
 
     # Extract SSB data
-    ssb_data = ssb(object)
-    df = FLCore:::as.data.frame(ssb_data, drop = TRUE)
-    iters = sort(an(unique(df$iter)))
+    df   =FLCore:::as.data.frame(ssb(object), drop = TRUE)
+    iters=sort(an(unique(df$iter)))
 
-    # Calculate BMSY and normalize SSB
-    bmsy = c(ssb(object)[,1,,,,dim(object)[6]])
-    df$ssb = df$data / bmsy
-    df$initial = c(ssb(object[,1]))[iters] / bmsy
+    # Calculate BMSY and scale SSB
+    bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
+    df$biomass=df$data/bmsy
+    df$initial=rep(c(ssb(object[,1]))[iters]/bmsy,each=dim(object)[2])
     df = na.omit(df)
 
     # Interpolate results
@@ -176,7 +168,7 @@ setMethod("rebuildTime", signature(object = "biodyn"),
     df = as.data.frame(stock(rtn), drop = TRUE)
     df$initial = c(stock(rtn)[,1])[an(df$iter)]
     df = df[,-2]
-    names(df) = c("year", "initial")
+    names(df) = c("year","biomass","initial")
     
     # Interpolate results
     return(interp(df))

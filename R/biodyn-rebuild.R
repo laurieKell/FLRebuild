@@ -1,54 +1,6 @@
-#' Rebuild Class
-#'
-#' @name Rebuild-class
-#' @docType class
-#' @slot params An \code{FLPar} object containing model parameters
-#' @slot nyrs Numeric, number of years for projection
-#' @slot niters Numeric, number of iterations
-#'
-#' @exportClass Rebuild
-setClass("Rebuild",
-         slots = c(params = "FLPar",
-                   nyrs = "numeric",
-                   niters = "numeric"))
-
-#' Generation Time
-#'
-#' @description Calculates generation time as 1/r
-#'
-#' @param x An object of class \code{Rebuild}
-#'
-#' @return Numeric value representing generation time
-#'
-#' @export
-setGeneric("gt", function(x) standardGeneric("gt"))
-
-#' Generation Time for FLBRP
-#'
-#' @description Calculates generation time for an FLBRP object as 1/r if available, otherwise NA.
-#' @param x An FLBRP object.
-#' @return Numeric value representing generation time
-#' @export
-setMethod("gt", signature(x = "FLBRP"), function(x) {
-  if("r" %in% names(params(x))) {
-    return(1 / as.numeric(params(x)["r"]))
-  } else {
-    warning("No 'r' parameter found in FLBRP object. Returning NA.")
-    return(NA_real_)
-  }
-})
-
-#' Generation Time for NULL
-#'
-#' @description Returns NA for NULL input (for vignette compatibility).
-#' @param x NULL
-#' @return NA
-#' @export
-setMethod("gt", signature(x = "NULL"), function(x) NA_real_)
-
 #' @rdname rebuild
 #' @export
-setMethod("rebuild", signature(object = "numeric"),
+setMethod("rebuild", signature(object="numeric"),
   function(object, ...) {
     args = list(...)
     if (is.null(args$p)) stop("Argument 'p' must be supplied in ...")
