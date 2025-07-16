@@ -1,0 +1,55 @@
+test_that("invSRR generic and methods exist", {
+  expect_true(isGeneric("invSRR"))
+})
+
+test_that("rmax and rmsy generics exist", {
+  expect_true(isGeneric("rmax"))
+  expect_true(isGeneric("rmsy"))
+})
+
+test_that("refCreate generic exists", {
+  expect_true(isGeneric("refCreate"))
+})
+
+if (requireNamespace("FLBRP", quietly = TRUE) && requireNamespace("FLCore", quietly = TRUE)) {
+  test_that("rmax and rmsy return expected types for FLBRP", {
+    data(ple4brp, package = "FLBRP")
+    expect_true(is.numeric(rmax(ple4brp)) || is( rmax(ple4brp), "FLPar"))
+    expect_true(is.numeric(rmsy(ple4brp)) || is( rmsy(ple4brp), "FLPar"))
+  })
+
+  test_that("rmax and rmsy with ratio argument work for FLBRP", {
+    data(ple4brp, package = "FLBRP")
+    out_rmax <- rmax(ple4brp, ratio = 0.5)
+    out_rmsy <- rmsy(ple4brp, ratio = 0.5)
+    expect_s4_class(out_rmax, "FLPar")
+    expect_s4_class(out_rmsy, "FLPar")
+    expect_true("rmax" %in% dimnames(out_rmax)$refpt)
+    expect_true("rmsy" %in% dimnames(out_rmsy)$refpt)
+  })
+
+  test_that("refCreate returns FLPar for FLBRP", {
+    data(ple4brp, package = "FLBRP")
+    out <- refCreate(ple4brp, "rec", 1000)
+    expect_s4_class(out, "FLPar")
+    expect_true("rec" %in% dimnames(out)$refpt)
+  })
+
+  test_that("invSRR returns FLQuant for FLBRP", {
+    data(ple4brp, package = "FLBRP")
+    rec <- FLQuant(1000)
+    out <- invSRR(ple4brp, rec)
+    expect_s4_class(out, "FLQuant")
+  })
+} else {
+  test_that("FLBRP or FLCore not available, skipping sr-rs tests", {
+    skip("FLBRP or FLCore not available")
+  })
+}
+
+test_that("bevholtInv and rickerInv return numeric or FLQuant", {
+  params <- FLPar(a = 1000, b = 2)
+  rec <- 500
+  expect_true(is.numeric(bevholtInv(params, rec)) || is(bevholtInv(params, rec), "FLQuant"))
+  expect_true(is.numeric(rickerInv(params, rec)) || is(rickerInv(params, rec), "FLQuant"))
+}) 

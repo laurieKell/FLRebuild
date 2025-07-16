@@ -40,7 +40,7 @@
 setMethod("blim", signature(object="FLBRP"),
        function(object, ratio=0.3) {
          # Get virgin recruitment 
-         rec = refpts(object)["virgin","rec",drop=TRUE] * ratio
+         rec = refpts(object)["virgin","rec",drop=TRUE]*ratio
          
          # Create new FLPar with NAs
          refpts(object) = FLPar(NA,
