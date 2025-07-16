@@ -33,6 +33,7 @@ Collate:
     biodyn-rebuild.R
     rebuild-pellaT.R
     abi.R
+    mode.R
     rebuild-methods.R
     FLBRP-blim.R
     sr-rs.R
