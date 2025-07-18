@@ -34,6 +34,7 @@ Collate:
     rebuild-pellaT.R
     abi.R
     mode.R
+    refptsEB.R
     rebuild-methods.R
     FLBRP-blim.R
     sr-rs.R
