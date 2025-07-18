@@ -127,33 +127,34 @@ setMethod("refCreate", signature(object="FLPar"),
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="missing"), 
   function(object, ...) {
-    switch(SRModelName(model(object)),
+    rtn=switch(SRModelName(model(object)),
            bevholt=params(object)["a"],
            ricker =1 / params(object)["b"],
            segreg =params(object)["a"] %/% params(object)["a"])
-  })
+    rtn})
 
 #' @rdname rmax
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="numeric"), 
   function(object, ratio, ...) {
     # Create new reference point FLPar
-    rmax_par <- refCreate(object, "rmax", invSRR(object, rmax(object) * ratio), "ssb")
+    rmax_par <- refCreate(object, paste("rmax",ratio*100,sep="."), invSRR(object, rmax(object) * ratio), "ssb")
     # Add to refpts slot
     refpts(object) <- rbind(refpts(object), rmax_par)
-    computeRefpts(object)
-  })
+    rtn=computeRefpts(object)
+    
+    rtn})
 
 #' @rdname rmsy
 #' @export
 setMethod("rmsy", signature(object="FLBRP"), 
   function(object, ratio=1.0, ...) {
     rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
-    rmsy_par <- refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
+    rmsy_par <- refCreate(object, paste("rmsy",ratio*100,sep="."), invSRR(object, rec_val), "rec")
     refpts(object) <- rbind(refpts(object), rmsy_par)
-    computeRefpts(object)
-  })
-
+    rtn=computeRefpts(object)
+    
+    rtn})
 # =============================================================================
 # Helper Functions (not S4)
 # =============================================================================
