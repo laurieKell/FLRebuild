@@ -190,4 +190,3 @@ rickerInv=function(params, rec) {
 #' @keywords internal
 rickerMaxRec=function(b) return(1/b)
 
-object=benchmark(icesdata[[1]])[c("blim","bpa","btrigger")]
