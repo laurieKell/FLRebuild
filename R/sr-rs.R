@@ -78,17 +78,49 @@ setMethod("invSRR", signature(params="FLSR", rec="FLQuant"),
   })
 
 #' @rdname refCreate
+#' @details
+#' For an FLBRP object, returns a new FLPar reference point object with the specified values. The input FLBRP object is not modified.
+#' For an FLPar object, returns a new FLPar reference point object mapping parameter names to quant columns. The input FLPar object is not modified.
+#' @return An FLPar object with reference point structure.
 #' @export
 setMethod("refCreate", signature(object="FLBRP"), 
   function(object, ref, value=NA, quant=ref, ...) {
-    rtn=list(refpt=ref,
-               quant=c("harvest", "yield", "rec",
-                         "ssb", "biomass", "revenue",
-                         "cost", "profit"),
-               iter=ifelse("FLPar"%in%is(value)|"FLQuant"%in%is(value), seq(dim(value)["iter"]), 1))
-    rtn=FLPar(NA, dimnames=rtn)
-    rtn[ref, quant]=value
-    rtn
+    # Validate quant
+    valid_quants <- c("harvest", "yield", "rec", "ssb", "biomass", "revenue", "cost", "profit")
+    if (any(!quant %in% valid_quants)) {
+      stop("Invalid quant(s) provided. Must be one of: ", paste(valid_quants, collapse=", "))
+    }
+    # Determine iter dimension
+    niter <- if (inherits(value, "FLPar") || inherits(value, "FLQuant")) {
+      if (!is.null(dim(value)["iter"])) dim(value)["iter"] else 1
+    } else 1
+    # Build dimnames
+    dn <- list(refpt=ref, quant=valid_quants, iter=seq_len(niter))
+    refpar <- FLPar(NA, dimnames=dn)
+    # Assign value(s) to specified quant(s)
+    if (length(quant) == 1 && length(value) > 1) {
+      # If a single quant but multiple values, assign across iter
+      refpar[ref, quant, ] <- value
+    } else {
+      # Otherwise assign value(s) to quant(s)
+      refpar[ref, quant] <- value
+    }
+    return(refpar)
+  })
+
+setMethod("refCreate", signature(object="FLPar"), 
+  function(object, ...) {
+    dmns <- dimnames(object)
+    valid_quants <- c("harvest", "yield", "rec", "ssb", "biomass", "revenue", "cost", "profit")
+    niter <- if (!is.null(dmns$iter)) length(dmns$iter) else 1
+    dn <- list(refpt=dmns$params, quant=valid_quants, iter=dmns$iter)
+    refpar <- FLPar(NA, dimnames=dn)
+    # Map parameter names to quant columns
+    if (any(startsWith(dmns$params, "b")))
+      refpar[startsWith(dmns$params, "b"), "ssb", ] <- object[startsWith(dmns$params, "b"), ]
+    if (any(startsWith(dmns$params, "f")))
+      refpar[startsWith(dmns$params, "f"), "harvest", ] <- object[startsWith(dmns$params, "f"), ]
+    return(refpar)
   })
 
 #' @rdname rmax
@@ -105,8 +137,10 @@ setMethod("rmax", signature(object="FLBRP", ratio="missing"),
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="numeric"), 
   function(object, ratio, ...) {
-    refpts(object)=refCreate(object, "rmax",invSRR(object,rmax(object)*ratio),"ssb")
-    #refpts(object)=refCreate(object, "rmax", refpts(object)["virgin", "ssb"]*ratio, "rec")
+    # Create new reference point FLPar
+    rmax_par <- refCreate(object, "rmax", invSRR(object, rmax(object) * ratio), "ssb")
+    # Add to refpts slot
+    refpts(object) <- rbind(refpts(object), rmax_par)
     computeRefpts(object)
   })
 
@@ -115,7 +149,8 @@ setMethod("rmax", signature(object="FLBRP", ratio="numeric"),
 setMethod("rmsy", signature(object="FLBRP"), 
   function(object, ratio=1.0, ...) {
     rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
-    refpts(object)=refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
+    rmsy_par <- refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
+    refpts(object) <- rbind(refpts(object), rmsy_par)
     computeRefpts(object)
   })
 
@@ -154,3 +189,4 @@ rickerInv=function(params, rec) {
 #' @keywords internal
 rickerMaxRec=function(b) return(1/b)
 
+object=benchmark(icesdata[[1]])[c("blim","bpa","btrigger")]

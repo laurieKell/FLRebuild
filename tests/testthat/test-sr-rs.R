@@ -28,11 +28,23 @@ if (requireNamespace("FLBRP", quietly = TRUE) && requireNamespace("FLCore", quie
     expect_true("rmsy" %in% dimnames(out_rmsy)$refpt)
   })
 
-  test_that("refCreate returns FLPar for FLBRP", {
+  test_that("refCreate returns FLPar for FLBRP and does not modify input", {
     data(ple4brp, package = "FLBRP")
+    original_refpts <- refpts(ple4brp)
     out <- refCreate(ple4brp, "rec", 1000)
     expect_s4_class(out, "FLPar")
     expect_true("rec" %in% dimnames(out)$refpt)
+    # Check that ple4brp is unchanged
+    expect_identical(refpts(ple4brp), original_refpts)
+  })
+
+  test_that("refCreate returns FLPar for FLPar and does not modify input", {
+    params <- FLPar(a = 1000, b = 2)
+    original_params <- params
+    out <- refCreate(params)
+    expect_s4_class(out, "FLPar")
+    # Check that params is unchanged
+    expect_identical(params, original_params)
   })
 
   test_that("invSRR returns FLQuant for FLBRP", {
