@@ -53,6 +53,17 @@ if (requireNamespace("FLBRP", quietly = TRUE) && requireNamespace("FLCore", quie
     out <- invSRR(ple4brp, rec)
     expect_s4_class(out, "FLQuant")
   })
+
+  test_that("refptsEB returns FLPar with eb quant for FLBRP", {
+    data(ple4brp, package = "FLBRP")
+    out <- refptsEB(ple4brp)
+    expect_s4_class(out, "FLPar")
+    expect_true("eb" %in% dimnames(out)$quant)
+    # Check that all original quants plus 'eb' are present
+    orig_quants <- c("harvest", "yield", "rec", "ssb", "biomass", "revenue", "cost", "profit")
+    expect_true(all(orig_quants %in% dimnames(out)$quant))
+    expect_true("eb" %in% dimnames(out)$quant)
+  })
 } else {
   test_that("FLBRP or FLCore not available, skipping sr-rs tests", {
     skip("FLBRP or FLCore not available")
