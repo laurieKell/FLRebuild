@@ -25,17 +25,14 @@ interp = function(df) {
       Yr[i] = sub_df$year[min(idx)]
     } else {
       Yr[i] = NA
-    }
-  }
+    }}
   
   # Return result
   result = data.frame(
-    initial = initials,
-    year = Yr
-  )
+    initial=initials,
+    year   =Yr)
   
-  return(result)
-}
+  return(result)}
 
 # =============================================================================
 # rebuild Methods
@@ -118,11 +115,10 @@ setMethod("rebuildTime", signature(object = "FLStock"),
     bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
     df$biomass=df$data/bmsy
     df$initial=rep(c(ssb(object[,1]))[iters]/bmsy,each=dim(object)[2])
-    df = na.omit(df)
+    df        =na.omit(df)
 
     # Interpolate results
-    return(interp(df))
-  })
+    return(interp(df))})
 
 #' @rdname rebuildTime
 #' @export

@@ -118,7 +118,7 @@ setMethod("rTime", signature(object="FLPar"),
 #' @description For a specified number of years, returns the biomass from which it takes exactly that time
 #' to recover to BMSY under Pella-Tomlinson dynamics with optional fishing mortality.
 #'
-#' @param object Desired recovery time in years or FLPar object with parameters
+#' @param object desired recovery time in years or FLPar object with parameters
 #' @param r Intrinsic rate of population increase (if object is numeric)
 #' @param p Shape parameter of the Pella-Tomlinson model (if object is numeric)
 #' @param bmsy Biomass at maximum sustainable yield (default=1)
