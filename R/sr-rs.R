@@ -46,6 +46,25 @@ setGeneric("rmax", function(object, ratio, ...) standardGeneric("rmax"))
 #' @export
 setGeneric("rmsy", function(object, ratio=1.0, ...) standardGeneric("rmsy"))
 
+
+#' Maximum recruitment for a stock-recruitment model
+#' 
+#' @param object An object (typically FLBRP)
+#' @param ratio Optional numeric ratio (default missing)
+#' @param ... Additional arguments
+#' @return Maximum recruitment (numeric or FLPar)
+#' @export
+setGeneric("rmax", function(object, ratio, ...) standardGeneric("rmax"))
+
+#' Recruitment at Virgin for a stock-recruitment model
+#' 
+#' @param object An object (typically FLBRP)
+#' @param ratio Optional numeric ratio (default 1.0)
+#' @param ... Additional arguments
+#' @return Recruitment at MSY (numeric or FLPar)
+#' @export
+setGeneric("rvirgin", function(object, ratio=1.0, ...) standardGeneric("rvirgin"))
+
 # =============================================================================
 # S4 Methods
 # =============================================================================
@@ -120,9 +139,16 @@ setMethod("refCreate", signature(object="FLPar"),
       refpar[startsWith(dmns$params, "b"), "ssb", ]=object[startsWith(dmns$params, "b"), ]
     if (any(startsWith(dmns$params, "f")))
       refpar[startsWith(dmns$params, "f"), "harvest", ]=object[startsWith(dmns$params, "f"), ]
-    return(refpar)
-  })
+    return(refpar)})
 
+setMethod("refCreate", signature(object="character"), 
+          function(object, ref="", value=NA, quant=ref, ...) {
+          
+            dmns=dimnames(refpts(FLBRP()))
+            dmns$refpt=object
+            
+            FLPar(NA,dimnames=dmns)})
+            
 #' @rdname rmax
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="missing"), 
@@ -137,24 +163,47 @@ setMethod("rmax", signature(object="FLBRP", ratio="missing"),
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="numeric"), 
   function(object, ratio, ...) {
+    if (ratio<=0&ratio>1) return(refCreate(object,"rmax",NA,"ssb"))
+    
     # Create new reference point FLPar
-    rmax_par=refCreate(object, paste("rmax",ratio*100,sep="."), invSRR(object, rmax(object) * ratio), "ssb")
+    rmaxPar=refCreate(object, paste("rmax",ratio*100,sep="."), invSRR(object, rmax(object) * ratio), "ssb")
     # Add to refpts slot
-    refpts(object)=rbind(refpts(object), rmax_par)
+    refpts(object)=rmaxPar
     rtn=computeRefpts(object)
     
     rtn})
 
+
 #' @rdname rmsy
 #' @export
-setMethod("rmsy", signature(object="FLBRP"), 
-  function(object, ratio=1.0, ...) {
-    rec_val=FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
-    rms=refCreate(object, paste("rmsy",ratio*100,sep="."), invSRR(object, rec_val), "rec")
-    refpts(object)=rbind(refpts(object), rmsy)
+setMethod("rmsy", signature(object="FLBRP", ratio="numeric"), 
+  function(object, ratio, ...) {
+    if (ratio<=0&ratio>1) return(refCreate(object,"rmsy",NA,"ssb"))
+    
+    refpts(object)=refCreate(object, "msy",NA,"ssb")
+    refpts(object)=computeRefpts(object)
+    recVal=FLPar(refpts(object)["msy", "rec", drop=TRUE])*ratio
+    
+    refpts(object)=refCreate(object, paste("rmsy",ratio*100,sep="."), invSRR(object, recVal), "rec")
     rtn=computeRefpts(object)
     
     rtn})
+
+#' @rdname rvirgin
+#' @export
+setMethod("rvirgin", signature(object="FLBRP", ratio="numeric"), 
+          function(object, ratio, ...) {
+            if (ratio<=0&ratio>1) return(refCreate(object,"rvirgin",NA,"ssb"))
+            
+            refpts(object)=refCreate(object, "virgin",NA,"ssb")
+            refpts(object)=computeRefpts(object)
+            recVal=FLPar(refpts(object)["virgin", "rec", drop=TRUE])*ratio
+            
+            refpts(object)=refCreate(object, paste("rvirgin",ratio*100,sep="."), invSRR(object, recVal), "rec")
+            rtn=computeRefpts(object)
+            
+            rtn})
+
 # =============================================================================
 # Helper Functions (not S4)
 # =============================================================================
