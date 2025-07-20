@@ -98,6 +98,60 @@ setMethod("rebuild", signature(object = "FLBRP"),
     return(stk)
   })
 
+#' @rdname rebuild
+#' @export
+setMethod("rebuild", signature(object = "biodyn"),
+  function(object, target = refpts(object)["bmsy"], nInitial = 100, 
+           growthRate = 0.3, minVal = 1e-6, maxVal = 1, burnin = 20, truncate = TRUE) {
+    
+    # Input validation
+    if (!is(object, "biodyn")) {
+      stop("object must be a biodyn object")
+    }
+    
+    if (!is.numeric(target) || length(target) != 1) {
+      stop("target must be a single numeric value")
+    }
+    
+    if (!all(sapply(list(nInitial, burnin), function(x) is.numeric(x) && x > 0))) {
+      stop("nInitial and burnin must be positive integers")
+    }
+    
+    if (!all(sapply(list(growthRate, minVal, maxVal), is.numeric))) {
+      stop("growthRate, minVal, and maxVal must be numeric")
+    }
+    
+    if (minVal >= maxVal) {
+      stop("minVal must be less than maxVal")
+    }
+    
+    # Get BMSY
+    bmsy <- c(refpts(object)["bmsy"])
+    
+    # Create propagated object
+    rtn <- propagate(object, nInitial)
+    
+    # Create stock projection
+    target_seq <- c(target) * seq(minVal^growthRate, maxVal^growthRate, 
+                                length.out = nInitial)^(1/growthRate)
+    rtn@stock <- FLQuant(rep(target_seq, each = dim(rtn)[2]), 
+                       dimnames = dimnames(stock(rtn)))
+    rtn <- fwd(rtn, catch = catch(rtn)[,-1] %=% 0.0)
+    
+    # Post-process
+    if (truncate) {
+      rtn <- rtn[,-seq(burnin)]
+    }
+    
+    # Rename years
+    rtn <- qapply(rtn, function(x) {
+      dimnames(x)$year <- seq(length(dimnames(x)$year))
+      x
+    })
+    
+    return(rtn)
+  })
+
 # =============================================================================
 # rebuildTime Methods
 # =============================================================================
@@ -108,14 +162,14 @@ setMethod("rebuildTime", signature(object = "FLStock"),
   function(object) {
 
     # Extract SSB data
-    df   =FLCore:::as.data.frame(ssb(object), drop = TRUE)
-    iters=sort(an(unique(df$iter)))
+    df <- as.data.frame(ssb(object), drop = TRUE)
+    iters <- sort(an(unique(df$iter)))
 
     # Calculate BMSY and scale SSB
-    bmsy      =c(ssb(object)[,1,,,,dim(object)[6]])
-    df$biomass=df$data/bmsy
-    df$initial=rep(c(ssb(object[,1]))[iters]/bmsy,each=dim(object)[2])
-    df        =na.omit(df)
+    bmsy <- c(ssb(object)[,1,,,,dim(object)[6]])
+    df$biomass <- df$data/bmsy
+    df$initial <- rep(c(ssb(object[,1]))[iters]/bmsy, each=dim(object)[2])
+    df <- na.omit(df)
 
     # Interpolate results
     return(interp(df))})

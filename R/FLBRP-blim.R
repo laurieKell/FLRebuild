@@ -68,3 +68,31 @@ setMethod("blim", signature(object="FLBRPs"), function(object, ratio=0.3) {
           
 #' @seealso
 #' \code{\link{FLBRP}} \code{\link{refpts}} \code{\link{computeRefpts}}
+
+#' @rdname msyVirgin
+#' @export
+setMethod("msyVirgin", signature(object="FLBRP"),
+  function(object, ...) {
+    # Get reference points
+    refs <- refpts(object)
+    
+    # Extract key metrics
+    msy_metrics <- c(
+      F_msy = c(refs["msy", "harvest"]),
+      SSB_msy = c(refs["msy", "ssb"]),
+      catch_msy = c(refs["msy", "yield"]),
+      ebiomass_msy = c(ebiomass(object))
+    )
+    
+    virgin_metrics <- c(
+      F_virgin = c(refs["virgin", "harvest"]),
+      SSB_virgin = c(refs["virgin", "ssb"]),
+      catch_virgin = c(refs["virgin", "yield"]),
+      ebiomass_virgin = c(ebiomass(object))
+    )
+    
+    # Combine all metrics
+    all_metrics <- c(msy_metrics, virgin_metrics)
+    
+    return(all_metrics)
+  })

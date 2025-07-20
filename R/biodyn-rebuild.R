@@ -97,3 +97,4 @@ setMethod("rebuild", signature(object="numeric"),
     out = cbind(shape = shape, dt_min[year < nyrs, ])
     
     as.data.frame(out)})
+

@@ -153,56 +153,72 @@ setMethod("refCreate", signature(object="character"),
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="missing"), 
   function(object, ...) {
-    rtn=switch(SRModelName(model(object)),
-           bevholt=params(object)["a"],
-           ricker =1 / params(object)["b"],
-           segreg =params(object)["a"] %/% params(object)["a"])
+    rtn <- switch(SRModelName(model(object)),
+           bevholt = params(object)["a"],
+           ricker = 1 / params(object)["b"],
+           segreg = params(object)["a"] %/% params(object)["a"])
     rtn})
 
 #' @rdname rmax
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="numeric"), 
   function(object, ratio, ...) {
-    if (ratio<=0&ratio>1) return(refCreate(object,"rmax",NA,"ssb"))
+    if (ratio <= 0 || ratio > 1) return(refCreate(object, "rmax", NA, "ssb"))
     
     # Create new reference point FLPar
-    rmaxPar=refCreate(object, paste("rmax",ratio*100,sep="."), invSRR(object, rmax(object) * ratio), "ssb")
+    rmax_par <- refCreate(object, paste("rmax", ratio*100, sep="."), invSRR(object, rmax(object) * ratio), "ssb")
     # Add to refpts slot
-    refpts(object)=rmaxPar
-    rtn=computeRefpts(object)
+    refpts(object) <- rbind(refpts(object), rmax_par)
+    rtn <- computeRefpts(object)
     
     rtn})
 
+#' @rdname rmsy
+#' @export
+setMethod("rmsy", signature(object="FLBRP", ratio="missing"), 
+  function(object, ratio=1.0, ...) {
+    rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
+    rmsy_par <- refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
+    refpts(object) <- rbind(refpts(object), rmsy_par)
+    computeRefpts(object)
+  })
 
 #' @rdname rmsy
 #' @export
 setMethod("rmsy", signature(object="FLBRP", ratio="numeric"), 
   function(object, ratio, ...) {
-    if (ratio<=0&ratio>1) return(refCreate(object,"rmsy",NA,"ssb"))
+    if (ratio <= 0 || ratio > 1) return(refCreate(object, "rmsy", NA, "ssb"))
     
-    refpts(object)=refCreate(object, "msy",NA,"ssb")
-    refpts(object)=computeRefpts(object)
-    recVal=FLPar(refpts(object)["msy", "rec", drop=TRUE])*ratio
+    refpts(object) <- refCreate(object, "msy", NA, "ssb")
+    refpts(object) <- computeRefpts(object)
+    rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
     
-    refpts(object)=refCreate(object, paste("rmsy",ratio*100,sep="."), invSRR(object, recVal), "rec")
-    rtn=computeRefpts(object)
+    refpts(object) <- refCreate(object, paste("rmsy", ratio*100, sep="."), invSRR(object, rec_val), "rec")
+    rtn <- computeRefpts(object)
     
     rtn})
 
 #' @rdname rvirgin
 #' @export
+setMethod("rvirgin", signature(object="FLBRP", ratio="missing"), 
+  function(object, ratio=1.0, ...) {
+    rec_val <- FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
+    rvirgin_par <- refCreate(object, "rvirgin", invSRR(object, rec_val), "rec")
+    refpts(object) <- rbind(refpts(object), rvirgin_par)
+    computeRefpts(object)
+  })
+
+#' @rdname rvirgin
+#' @export
 setMethod("rvirgin", signature(object="FLBRP", ratio="numeric"), 
-          function(object, ratio, ...) {
-            if (ratio<=0&ratio>1) return(refCreate(object,"rvirgin",NA,"ssb"))
-            
-            refpts(object)=refCreate(object, "virgin",NA,"ssb")
-            refpts(object)=computeRefpts(object)
-            recVal=FLPar(refpts(object)["virgin", "rec", drop=TRUE])*ratio
-            
-            refpts(object)=refCreate(object, paste("rvirgin",ratio*100,sep="."), invSRR(object, recVal), "rec")
-            rtn=computeRefpts(object)
-            
-            rtn})
+  function(object, ratio, ...) {
+    if (ratio <= 0 || ratio > 1) return(refCreate(object, "rvirgin", NA, "ssb"))
+    
+    rec_val <- FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
+    refpts(object) <- refCreate(object, paste("rvirgin", ratio*100, sep="."), invSRR(object, rec_val), "rec")
+    rtn <- computeRefpts(object)
+    
+    rtn})
 
 # =============================================================================
 # Helper Functions (not S4)

@@ -19,12 +19,14 @@ Imports:
     methods,
     ggplot2 (>= 3.0.0),
     mpb (>= 0.0.0),
-    data.table (>= 1.14.0)
+    data.table (>= 1.14.0),
+    biodyn (>= 0.0.0),
+    gsl (>= 2.1.0),
+    akima (>= 0.6.0)
 Suggests:
     testthat (>= 3.0.0),
     knitr (>= 1.30),
-    rmarkdown (>= 2.0),
-    akima (>= 0.6.0)
+    rmarkdown (>= 2.0)
 Collate:
     generic.R
     package.R
