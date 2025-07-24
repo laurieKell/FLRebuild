@@ -142,12 +142,15 @@ setMethod("refCreate", signature(object="FLPar"),
     return(refpar)})
 
 setMethod("refCreate", signature(object="character"), 
-          function(object, ref="", value=NA, quant=ref, ...) {
+          function(object, ref="", value=NA, quant="ssb", ...) {
           
             dmns=dimnames(refpts(FLBRP()))
             dmns$refpt=object
             
-            FLPar(NA,dimnames=dmns)})
+            rtn=FLPar(NA,dimnames=dmns)
+            rtn[,quant]=value
+            
+            rtn})
             
 #' @rdname rmax
 #' @export
