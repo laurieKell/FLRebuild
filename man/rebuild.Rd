@@ -5,6 +5,7 @@
 \alias{rebuild}
 \alias{rebuild,numeric-method}
 \alias{rebuild,FLBRP-method}
+\alias{rebuild,biodyn-method}
 \title{Rebuild a fish population}
 \usage{
 rebuild(object, ...)
@@ -17,6 +18,17 @@ rebuild(object, ...)
   targetSSB = computeRefpts(object)["msy", "ssb"],
   nInitial = 100,
   growthRate = 0.25,
+  minVal = 1e-06,
+  maxVal = 1,
+  burnin = 20,
+  truncate = TRUE
+)
+
+\S4method{rebuild}{biodyn}(
+  object,
+  target = refpts(object)["bmsy"],
+  nInitial = 100,
+  growthRate = 0.3,
   minVal = 1e-06,
   maxVal = 1,
   burnin = 20,

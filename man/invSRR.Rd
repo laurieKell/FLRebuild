@@ -3,17 +3,20 @@
 \name{invSRR}
 \alias{invSRR}
 \alias{invSRR,FLBRP,FLQuant-method}
+\alias{invSRR,FLBRP,FLPar-method}
 \alias{invSRR,FLSR,FLQuant-method}
 \title{Generic for inverse stock-recruitment relationships}
 \usage{
 invSRR(params, rec, ...)
 
-\S4method{invSRR}{FLBRP,FLQuant}(params, rec)
+\S4method{invSRR}{FLBRP,FLQuant}(params, rec, ...)
 
-\S4method{invSRR}{FLSR,FLQuant}(params, rec)
+\S4method{invSRR}{FLBRP,FLPar}(params, rec, ...)
+
+\S4method{invSRR}{FLSR,FLQuant}(params, rec, ...)
 }
 \arguments{
-\item{params}{FLPar object with SRR parameters}
+\item{params}{FLPar object with SRR parameters or FLBRP/FLSR object}
 
 \item{rec}{Recruitment values (numeric, FLPar, or FLQuant)}
 
