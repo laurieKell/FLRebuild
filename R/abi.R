@@ -17,7 +17,7 @@ setMethod("abiAge",
             totN = quantSums(stk.n)
             # Avoid division by zero
             totN[totN == 0] = NA
-            propN = cumN / rep(totN, each = dim(stk.n)[1])
+            propN = cumN %/% totN
             ages_arr = array(as.numeric(ages(stk.n)), dim = dim(stk.n))
             ages_arr[propN <= p] = NA
             # Find the minimum age above threshold for each year/iter
@@ -120,14 +120,7 @@ setMethod("abi",
             } else if (dim(pmsy)[6] == 1 && dim(pt)[6] > 1) {
               pmsy = propagate(pmsy, dim(pt)[6])
             }
-            # Match year dimensions if needed
-            if (dim(pt)[2] == 1 && dim(pmsy)[2] > 1) {
-              pt = propagate(pt, dim(pmsy)[2])
-            } else if (dim(pmsy)[2] == 1 && dim(pt)[2] > 1) {
-              pmsy = propagate(pmsy, dim(pt)[2])
-            }
-            pt %/% pmsy
-          })
+      pt %/% pmsy})
 
 #' @rdname abi
 #' @export

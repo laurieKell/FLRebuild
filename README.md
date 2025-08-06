@@ -81,12 +81,18 @@ rT = rebuildTime(stk)
 
 - `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object
 - `msyVirgin(object)`: Calculates MSY and virgin state metrics
+- `lag(object, refpt = "msy")`: Estimates population dynamics lag by simulating pulse recruitment events
+- `fitPellaT(object, method = "mle")`: Fits Pella-Tomlinson surplus production model parameters using multiple methods (MLE, Method of Moments, Direct calculation, Reference points). Automatically determines p parameter bounds based on BMSY/K ratio.
+
+- `fitPellaTDirect(MSY, BMSY, K)`: Direct calculation of Pella-Tomlinson parameters from known values. Automatically determines p parameter bounds based on BMSY/K ratio.
 
 ### Age-Based Indicators (ABI)
 
 - `abiAge(object, ref = "msy", p = 0.9)`: Calculates reference age for FLBRP object
 - `abiMsy(object, ref = "msy", p = 0.9)`: Calculates proportion above reference age at MSY
 - `abi(object, age, ...)`: Calculates observed proportion above reference age for FLStock
+- `ageMax(object, na.rm = TRUE)`: Finds age with maximum value for each year and iteration in FLQuant (returns 1 quant dimension)
+- `ageMaxQ(object, na.rm = TRUE)`: Alternative implementation using qapply for better performance
 
 ## Examples
 

@@ -11,7 +11,7 @@ setGeneric("refptsEB", function(object, ...) standardGeneric("refptsEB"))
 #' @rdname refptsEB
 #' @export
 setMethod("refptsEB", signature(object="FLBRP"),
-  function(object, ...) {
+  function(object,biomass="ssb",...) {
     fbar(object) = FLQuant(refpts(object)[, "harvest", drop=TRUE])
     fbar(object) = qmax(fbar(object), 1e-12)
     object = brp(object)

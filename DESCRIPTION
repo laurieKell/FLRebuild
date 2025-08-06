@@ -20,7 +20,6 @@ Imports:
     ggplot2 (>= 3.0.0),
     mpb (>= 0.0.0),
     data.table (>= 1.14.0),
-    biodyn (>= 0.0.0),
     gsl (>= 2.1.0),
     akima (>= 0.6.0)
 Suggests:
@@ -33,7 +32,6 @@ Collate:
     utils.R
     biodyn.R
     biodyn-rebuild.R
-    rebuild-pellaT.R
     abi.R
     mode.R
     refptsEB.R
@@ -41,4 +39,18 @@ Collate:
     FLBRP-blim.R
     sr-rs.R
     rboot.R
+    ebiomass.R
+    bootstrap.R
+    refpt-processing.R
+    rebuild-analysis.R
+    parallel-utils.R
+    data-management.R
+    analysis-plots.R
+    scenario-management.R
+    export-utils.R
+    lag.R
+    pellatUtils.R
+    pellatRebuild.R
+    pellat.R
+    pellatParams.R
 VignetteBuilder: knitr 

@@ -74,7 +74,7 @@ setMethod("rebuild", signature(object="numeric"),
     nyrs = if (!is.null(args$nyrs)) args$nyrs else 50
     niters = if (!is.null(args$niters)) args$niters else 101
     r = object
-    object = biodyn(params = FLPar(r = r, p = p, k = k, B0 = b0))
+    object = biodyn(FLPar(r = r, p = p, k = k, B0 = b0))
     shape = c(refpts(object)["bmsy"] %/% params(object)["k"])
     object = window(object, end = nyrs)
     object@stock[] = refpts(object)["bmsy"]
