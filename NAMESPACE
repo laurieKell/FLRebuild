@@ -12,20 +12,14 @@ export(applyScenarioAnalysis)
 export(applyScenarioConfig)
 # export(bevholtInv)  # internal function
 export(blim)
-# export(bmsyK)  # from pellatUtils.R - no longer required
-# export(bmsyK2p)  # from pellatUtils.R - no longer required
 export(bootstrapFLBRP)
 export(bootstrapSingleFLBRP)
 export(brebuild)
 export(calculateCarryingCapacity)
 export(calculateFoxRecoveryTime)
-# export(calculateGrowthRate)  # from pellatUtils.R - no longer required
-# export(calculatePellatRecoveryTime)  # from pellatUtils.R - no longer required
 export(calculateRebuildTimes)
 export(calculateRecoveryTime)
-# export(calculateScalingParameter)  # from pellatUtils.R - no longer required
 export(calculateStatistics)
-# export(calculateTheoreticalMSY)  # from pellatUtils.R - no longer required
 export(calculateTmax)
 export(checkSystemResources)
 export(cleanAndPrepareData)
@@ -35,8 +29,6 @@ export(combineScenarioResults)
 export(compareMultipleScenarios)
 export(compareScenarios)
 export(createAnalysisReport)
-# export(createEmptyFLPar)  # from pellatUtils.R - no longer required
-# export(createModifiedPellatProduction)  # from pellatUtils.R - no longer required
 export(createScenarioConfig)
 export(createScenarioMatrix)
 export(createSummaryStatsPlot)
@@ -48,13 +40,10 @@ export(exportResultsToMultipleFormats)
 export(exportSummaryStatistics)
 export(exportToHTML)
 export(exportToPDF)
-# export(extractFLBRPRefs)  # from pellatUtils.R - no longer required
 export(extractRefpts)
-# export(fillFLPar)  # from pellatUtils.R - no longer required
 export(fitPellatDirect)
 export(generateReportContent)
 export(generateScenarioReport)
-# export(getParamNames)  # from pellatUtils.R - no longer required
 # export(gtBd)  # internal function
 export(gtLife)
 export(gtR0)
@@ -65,7 +54,6 @@ export(mergeTimeSeriesRefpts)
 export(monitorProgress)
 export(msyVirgin)
 export(optimizeParallelSettings)
-# export(p2shape)  # from pellatUtils.R - no longer required
 export(parallelRebuildAnalysis)
 export(parallelRefptExtraction)
 # export(pellaTMleCore)  # internal function
@@ -75,13 +63,9 @@ export(plotRebuildTrajectories)
 export(plotRefptCorrelations)
 export(plotRefptDistribution)
 export(processBreakpointData)
-# export(processPellatIteration)  # from pellatUtils.R - no longer required
-# export(processPellatIterationFlexible)  # from pellatUtils.R - no longer required
 export(production)
-export(productionModified)
 export(ptMle)
 # export(rboot_years)  # internal function
-# export(rFmsy2p)  # from pellatUtils.R - no longer required
 export(rTime)
 export(rebuild)
 # export(rebuildBiodyn)  # internal function
@@ -103,10 +87,8 @@ export(standardizeRefptData)
 export(validateBootstrapConfig)
 export(validateFLBRPObject)
 export(validateInputData)
-# export(validateModifiedProductionCurve)  # from pellatUtils.R - no longer required
 # export(validatePellatParams)  # internal function
 export(validatePriorConfig)
-# export(validateProductionCurve)  # from pellatUtils.R - no longer required
 export(validateScenarioConfig)
 
 # Method exports
