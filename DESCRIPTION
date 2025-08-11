@@ -52,5 +52,4 @@ Collate:
     pellatUtils.R
     pellatRebuild.R
     pellat.R
-    pellatParams.R
 VignetteBuilder: knitr 

@@ -79,12 +79,54 @@ rT = rebuildTime(stk)
 
 ### Reference Points
 
-- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object
+- `blim(object, ratio = 0.3)`: Calculates biomass limit reference points (Blim) for an FLBRP object. **FLBRPs method returns a data frame with one row per iteration.**
 - `msyVirgin(object)`: Calculates MSY and virgin state metrics
 - `lag(object, refpt = "msy")`: Estimates population dynamics lag by simulating pulse recruitment events
-- `fitPellaT(object, method = "mle")`: Fits Pella-Tomlinson surplus production model parameters using multiple methods (MLE, Method of Moments, Direct calculation, Reference points). Automatically determines p parameter bounds based on BMSY/K ratio.
+- `refs(object)`: Extracts reference points from FLBRP objects. **FLBRPs method returns a data frame with one row per iteration and columns for all reference point parameters.**
+- `ptMle(object, biomass = "ssb", ...)`: Fits Pella-Tomlinson surplus production model parameters using maximum likelihood estimation. Optimized for performance with vectorized calculations and efficient parameter estimation. Automatically determines p parameter bounds based on BMSY/K ratio. **FLBRPs method returns a data frame with one row per iteration and columns for all parameters.**
 
 - `fitPellaTDirect(MSY, BMSY, K)`: Direct calculation of Pella-Tomlinson parameters from known values. Automatically determines p parameter bounds based on BMSY/K ratio.
+
+- `createModifiedPellatProduction(r, p, k, bmsy, msy, biomass)`: Creates a modified Pella-Tomlinson production curve that ensures the right-hand limb has an increasing slope, avoiding the issue where p=0.5 creates a curve that peaks too late and then declines.
+
+- `productionModified(params, biomass)`: Calculates production using the modified Pella-Tomlinson model that guarantees proper curve shape and increasing slopes on the right-hand limb.
+
+- `validateModifiedProductionCurve(biomass, production, bmsy, k)`: Validates that the modified production curve has the correct shape with an increasing slope on the right-hand limb.
+
+### Pella-Tomlinson Surplus Production Model
+
+The package includes a comprehensive, refactored implementation of the Pella-Tomlinson surplus production model with the following key functions:
+
+#### Core Methods
+- `pt(object, biomass = "ssb", use_scaling = FALSE, ...)`: Main method for fitting Pella-Tomlinson parameters to FLBRP, FLPar, or FLBRPs objects. **Reference point priority: MSY (1st), FMSY (2nd), BMSY (3rd)**. **Automatically prevents decreasing slopes on the right-hand limb.**
+  - **FLPar method**: Now accepts any three of `fmsy`, `fcrash`, `bmsy`, `k` (or `virgin`), `msy` to yield a unique solution. **Note: `virgin` is synonymous with `k`** - if `virgin` is supplied but not `k`, then `virgin` is used in place of `k`.
+  - **FLBRPs method**: Returns a data frame with one row per iteration and columns for all parameters (r, p, virgin, bmsy, fmsy, msy, fcrash, scaling).
+
+
+#### Utility Functions
+- `calculatePFromBmsyK(bmsy_k_ratio)`: **Simple function to calculate p parameter from BMSY/K ratio** - provides straightforward calculation of the shape parameter p for any valid BMSY/K ratio
+
+- `calculateGrowthRate(p, bmsy, k, msy)`: Calculate intrinsic growth rate for both Pella-Tomlinson and Fox models
+- `calculateTheoreticalMSY(r, p, bmsy, k)`: Calculate theoretical MSY from parameters
+- `calculateScalingParameter(bmsy_k, r, p, bmsy, k, msy, use_scaling)`: Calculate scaling parameter for low BMSY/K ratios
+
+#### Decreasing Slope Protection
+- **Automatic Prevention**: The package automatically detects and prevents any fits that would create decreasing slopes on the right-hand limb
+- **Custom Production Functions**: When problematic parameters are detected, the system automatically switches to custom production functions that guarantee proper curve shape
+- **Parameter Validation**: Enhanced validation ensures only biologically realistic production curves are accepted
+- **Smart Fallbacks**: For low BMSY/K ratios that commonly cause issues, the system uses proven custom production functions
+
+#### Recovery Time Calculations
+- `rTime(object, ...)`: Calculate recovery time to BMSY under Pella-Tomlinson dynamics
+- `rebuildTime(object, ...)`: Calculate rebuild time using Pella-Tomlinson dynamics
+- `calculateCarryingCapacity(p, bmsy)`: Calculate carrying capacity from BMSY and shape parameter
+- `calculateRecoveryTime(B0, B1, K, rEff, p, invalid, naMask)`: Calculate recovery time using Pella-Tomlinson dynamics
+
+#### FLPar Management
+- `getParamNames(use_scaling)`: Get parameter names based on scaling option
+- `createEmptyFLPar(param_names, dims)`: Create empty FLPar with correct structure
+- `processPellatIteration(object, i, use_scaling)`: Process single iteration for pellat
+- `fillFLPar(res, params, i, use_scaling)`: Fill FLPar with calculated parameters
 
 ### Age-Based Indicators (ABI)
 
@@ -144,12 +186,49 @@ blim_val = blim(eq, ratio = 0.3)
 msy_virgin = msyVirgin(eq)
 ```
 
+### Modified Pella-Tomlinson Production Model
+```r
+# Set up parameters for problematic case (p = 0.5)
+r <- 0.5        # Growth rate
+p <- 0.5        # Shape parameter (causes issues in standard model)
+k <- 1000       # Virgin biomass
+bmsy <- 200     # Target BMSY (BMSY/K = 0.2)
+msy <- 50       # Target MSY
+
+# Create biomass range
+biomass <- seq(0, k, length.out = 100)
+
+# Calculate production using modified model
+modified_prod <- createModifiedPellatProduction(r, p, k, bmsy, msy, biomass)
+
+# Compare with standard model
+standard_prod <- r * biomass * (1 - (biomass / k)^p) / p
+
+# Plot comparison
+plot(biomass, standard_prod, type = "l", col = "red", lwd = 2,
+     xlab = "Biomass", ylab = "Production",
+     main = "Pella-Tomlinson Comparison (p = 0.5)")
+lines(biomass, modified_prod, col = "blue", lwd = 2)
+abline(v = bmsy, lty = 2, col = "green")
+legend("topright", legend = c("Standard (problematic)", "Modified (fixed)", "Target BMSY"),
+       col = c("red", "blue", "green"), lty = c(1, 1, 2), lwd = c(2, 2, 1))
+
+# Validate the modified curve
+is_valid <- validateModifiedProductionCurve(biomass, modified_prod, bmsy, k)
+cat("Modified curve is valid:", is_valid, "\n")
+
+# Use with FLPar objects
+params <- FLPar(r = r, p = p, virgin = k, bmsy = bmsy, msy = msy)
+biomass_flq <- FLQuant(biomass)
+modified_result <- productionModified(params, biomass_flq)
+```
+
 ## Dependencies
 
 ### Required
 - **FLCore** (>= 2.6.0): Core FLR functionality
 - **FLBRP** (>= 2.5.0): Biological reference points
-- **FLife** (>= 2.6.0): Life history parameters
+- **FLlife** (>= 2.6.0): Life history parameters
 - **ggplotFL** (>= 0.2.0): Plotting for FLR objects
 - **data.table** (>= 1.14.0): Fast data manipulation
 
