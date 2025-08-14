@@ -47,15 +47,6 @@ setGeneric("rmax", function(object, ratio, ...) standardGeneric("rmax"))
 setGeneric("rmsy", function(object, ratio=1.0, ...) standardGeneric("rmsy"))
 
 
-#' Maximum recruitment for a stock-recruitment model
-#' 
-#' @param object An object (typically FLBRP)
-#' @param ratio Optional numeric ratio (default missing)
-#' @param ... Additional arguments
-#' @return Maximum recruitment (numeric or FLPar)
-#' @export
-setGeneric("rmax", function(object, ratio, ...) standardGeneric("rmax"))
-
 #' Recruitment at Virgin for a stock-recruitment model
 #' 
 #' @param object An object (typically FLBRP)
@@ -156,7 +147,7 @@ setMethod("refCreate", signature(object="character"),
 #' @export
 setMethod("rmax", signature(object="FLBRP", ratio="missing"), 
   function(object, ...) {
-    rtn <- switch(SRModelName(model(object)),
+    rtn=switch(SRModelName(model(object)),
            bevholt = params(object)["a"],
            ricker = 1 / params(object)["b"],
            segreg = params(object)["a"] %/% params(object)["a"])
@@ -169,10 +160,10 @@ setMethod("rmax", signature(object="FLBRP", ratio="numeric"),
     if (ratio <= 0 || ratio > 1) return(refCreate(object, "rmax", NA, "ssb"))
     
     # Create new reference point FLPar
-    rmax_par <- refCreate(object, paste("rmax", ratio*100, sep="."), invSRR(object, rmax(object) * ratio), "ssb")
+    rmaxPar=refCreate(object, paste("rmax", ratio*100, sep="."), invSRR(object, rmax(object) * ratio), "ssb")
     # Add to refpts slot
-    refpts(object) <- rbind(refpts(object), rmax_par)
-    rtn <- computeRefpts(object)
+    refpts(object)=rmaxPar
+    rtn=computeRefpts(object)
     
     rtn})
 
@@ -180,9 +171,9 @@ setMethod("rmax", signature(object="FLBRP", ratio="numeric"),
 #' @export
 setMethod("rmsy", signature(object="FLBRP", ratio="missing"), 
   function(object, ratio=1.0, ...) {
-    rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
-    rmsy_par <- refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
-    refpts(object) <- rbind(refpts(object), rmsy_par)
+    rec_val=FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
+    rmsyPar=refCreate(object, "rmsy", invSRR(object, rec_val), "rec")
+    refpts(object)=rbind(refpts(object), rmsyPar)
     computeRefpts(object)
   })
 
@@ -192,12 +183,12 @@ setMethod("rmsy", signature(object="FLBRP", ratio="numeric"),
   function(object, ratio, ...) {
     if (ratio <= 0 || ratio > 1) return(refCreate(object, "rmsy", NA, "ssb"))
     
-    refpts(object) <- refCreate(object, "msy", NA, "ssb")
-    refpts(object) <- computeRefpts(object)
-    rec_val <- FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
+    refpts(object)=refCreate(object, "msy", NA, "ssb")
+    refpts(object)=computeRefpts(object)
+    rec_val=FLPar(refpts(object)["msy", "rec", drop=TRUE]) * ratio
     
-    refpts(object) <- refCreate(object, paste("rmsy", ratio*100, sep="."), invSRR(object, rec_val), "rec")
-    rtn <- computeRefpts(object)
+    refpts(object)=refCreate(object, paste("rmsy", ratio*100, sep="."), invSRR(object, rec_val), "rec")
+    rtn=computeRefpts(object)
     
     rtn})
 
@@ -205,9 +196,9 @@ setMethod("rmsy", signature(object="FLBRP", ratio="numeric"),
 #' @export
 setMethod("rvirgin", signature(object="FLBRP", ratio="missing"), 
   function(object, ratio=1.0, ...) {
-    rec_val <- FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
-    rvirgin_par <- refCreate(object, "rvirgin", invSRR(object, rec_val), "rec")
-    refpts(object) <- rbind(refpts(object), rvirgin_par)
+    rec_val=FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
+    rvirginPar=refCreate(object, "rvirgin", invSRR(object, rec_val), "rec")
+    refpts(object)=rbind(refpts(object), rvirginPar)
     computeRefpts(object)
   })
 
@@ -217,9 +208,9 @@ setMethod("rvirgin", signature(object="FLBRP", ratio="numeric"),
   function(object, ratio, ...) {
     if (ratio <= 0 || ratio > 1) return(refCreate(object, "rvirgin", NA, "ssb"))
     
-    rec_val <- FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
-    refpts(object) <- refCreate(object, paste("rvirgin", ratio*100, sep="."), invSRR(object, rec_val), "rec")
-    rtn <- computeRefpts(object)
+    rec_val=FLPar(refpts(object)["virgin", "rec", drop=TRUE]) * ratio
+    refpts(object)=refCreate(object, paste("rvirgin", ratio*100, sep="."), invSRR(object, rec_val), "rec")
+    rtn=computeRefpts(object)
     
     rtn})
 
@@ -257,4 +248,5 @@ rickerInv=function(params, rec) {
 #' @return SSB at maximum recruitment
 #' @keywords internal
 rickerMaxRec=function(b) return(1/b)
+
 
