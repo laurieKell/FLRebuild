@@ -199,26 +199,38 @@ rodFn <- function(data, year = NULL, n = 10, sig = 1.68, plot = FALSE) {
     lengths <- length(data)
   }
   
-  # Create regime data frame
-  minyear <- c(year[1], year[rev(rev(lengths)[-1])] + 1)
-  maxyear <- min(year) + lengths - 1
-  
+  # Create regime data frame (lengths are end indices into data/year)
+  ends <- as.integer(lengths)
+  starts <- c(1L, utils::head(ends, -1L) + 1L)
+  minyear <- as.numeric(year[starts])
+  maxyear <- as.numeric(year[ends])
+
   regime_data <- data.frame(
     mn = means,
     sd = sds,
     i = factor(seq_along(means)),
-    ln = lengths,
+    ln = ends,
     minyear = minyear,
     maxyear = maxyear
   )
-  
-  # Format for plotting (polygon vertices)
-  result <- data.frame(
-    regime = regime_data$i,
-    data = with(regime_data, c(mn + sd, mn - sd, mn - sd, mn + sd)),
-    year = with(regime_data, c(minyear, minyear, maxyear, maxyear))
-  )
-  
+
+  # One closed rectangle per regime, vertices in draw order
+  result <- do.call(rbind, lapply(seq_len(nrow(regime_data)), function(i) {
+    lo <- regime_data$mn[i] - regime_data$sd[i]
+    hi <- regime_data$mn[i] + regime_data$sd[i]
+    data.frame(
+      regime  = regime_data$i[i],
+      year    = c(regime_data$minyear[i], regime_data$maxyear[i],
+                  regime_data$maxyear[i], regime_data$minyear[i]),
+      data    = c(hi, hi, lo, lo),
+      minyear = regime_data$minyear[i],
+      maxyear = regime_data$maxyear[i],
+      mn      = regime_data$mn[i],
+      sd      = regime_data$sd[i]
+    )
+  }))
+
+  rownames(result) <- NULL
   return(result)
 }
 
@@ -358,11 +370,12 @@ setMethod("rod", signature(object = "FLQuant"),
           function(object, year = NULL, n = 10, sig = 1.68, plot = FALSE, ...) {
             plyr::ddply(
               as.data.frame(object),
-              .(iter),
+              "iter",
               function(df) {
                 # Use years from FLQuant if year not provided
                 if (is.null(year)) {
-                  rodFn(data = df$data, year = df$year, n = n, sig = sig, plot = plot)
+                  yrs <- as.numeric(as.character(df$year))
+                  rodFn(data = df$data, year = yrs, n = n, sig = sig, plot = plot)
                 } else {
                   rodFn(data = df$data, year = year, n = n, sig = sig, plot = plot)
                 }

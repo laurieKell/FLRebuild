@@ -1,4 +1,4 @@
-#' Build equilibrium and production-curve inputs from SS output
+I #' Build equilibrium and production-curve inputs from SS output
 #'
 #' Process Stock Synthesis output to calculate yield and surplus production
 #' series for equilibrium-curve plotting.
@@ -11,7 +11,7 @@
 #'   `derived`. For list input containing paths, each data.frame includes an
 #'   identifying column `id`.
 #' @export
-setMethod("curveSS", signature(object = "list"), function(object, maxY = 1.5) {
+setMethod("curveSS", signature(object="list"), function(object, maxY = 1.5) {
   # If input is a list of character paths, dispatch per element and bind with ID.
   if (length(object) > 0 && all(vapply(object, function(x) is.character(x) && length(x) == 1, logical(1)))) {
     ids <- names(object)
@@ -218,7 +218,251 @@ if (FALSE){
       scale_y_continuous(limits=c(NA,9100))
    
     (p2 | p3) / p1}
+
+
+
+ss3Objects<-function(replist,fls,seas=1) {
+  
+  ## natage → N
+  nat=replist$natage
+  if (is.null(nat) || !nrow(nat)) stop("replist$natage not found")
+  
+  if (!"Beg/Mid" %in% names(nat)) stop("'Beg/Mid' column not found in natage")
+  nat=nat[nat$Seas == seas & nat[["Beg/Mid"]] == "B" & nat$Era == "TIME",
+          , drop = FALSE]
+  
+  age_cols=as.character(0:100)
+  age_cols=age_cols[age_cols %in% names(nat)]
+  if (!length(age_cols)) stop("No age columns found in natage")
+  
+  ages =as.numeric(age_cols)
+  years=sort(unique(nat$Yr))
+  
+  N=matrix(NA_real_, nrow = length(ages), ncol = length(years),
+           dimnames = list(age = ages, year = years))
+  for (j in seq_along(years)) {
+    yr=years[j]
+    rows=nat[nat$Yr == yr, age_cols, drop = FALSE]
+    N[, j]=colSums(rows, na.rm = TRUE)
+  }
+  
+  ## wtatage → W
+  wt=replist$wtatage
+  if (is.null(wt) || !nrow(wt)) stop("replist$wtatage not found")
+  wt=wt[wt$seas == seas, , drop = FALSE]
+  
+  W=matrix(NA_real_, nrow = length(ages), ncol = length(years),
+           dimnames = list(age = ages, year = years))
+  for (j in seq_along(years)) {
+    yr=years[j]
+    rows=wt[wt$year == yr, age_cols, drop = FALSE]
+    if (!nrow(rows)) {
+      W[, j]=NA_real_
+    } else {
+      W[, j]=colMeans(rows, na.rm = TRUE)
+    }
+  }
+  
+  ## timeseries → SSB
+  ts=replist$timeseries
+  if (is.null(ts) || !nrow(ts)) stop("replist$timeseries not found")
+  ts_sub=ts[ts$Era == "TIME" & ts$Seas == seas,
+            c("Yr", "SpawnBio"), drop = FALSE]
+  names(ts_sub)=c("year", "SSB")
+  
+  ## m(fls) → M
+  M_flq=m(fls)  # FLQuant: age × year × unit × season × area × iter
+  M_slice=M_flq[as.character(ages),
+                as.character(years),
+                1, 1, 1, 1, drop = TRUE]
+  M_mat=as.matrix(M_slice)
+  
+  list(
+    N     = N,
+    M     = M_mat,
+    W     = W,
+    SSB   = ts_sub,
+    ages  = ages,
+    years = years)}
+
+ss3qSSB<-function(W, Mat, M, theta = 0.5, plusgroup = TRUE) {
+  ages =seq_len(nrow(W))
+  years=seq_len(ncol(W))
+  
+  q=matrix(0, nrow = nrow(W), ncol = ncol(W), dimnames = dimnames(W))
+  
+  for (ia in ages) {
+    for (jt in years) {
+      q_at=0
+      surv=1
+      
+      for (ik in ia:nrow(W)) {
+        ku=jt + (ik - ia)
+        if (ku > ncol(W)) break
+        
+        if (ik > ia) {
+          surv=surv * exp(-M[ik - 1, ku - 1])
+        }
+        
+        q_at=q_at + surv * W[ik, ku] * Mat[ik, ku] * exp(-theta * M[ik, ku])
+      }
+      
+      if (plusgroup) {
+        last_u=jt + (nrow(W) - ia)
+        if (last_u <= ncol(W)) {
+          q_at=q_at + surv *
+            (W[nrow(W), last_u] *
+               Mat[nrow(W), last_u] *
+               exp(-theta * M[nrow(W), last_u]) /
+               (1 - exp(-M[nrow(W), last_u])))
+        }
+      }
+      
+      q[ia, jt]=q_at}}
+  
+  q}
+
+ss3qStationary<-function(W, Mat, M, theta = 0.5, plusgroup = TRUE) {
+  Wa  =rowMeans(W,   na.rm = TRUE)
+  Mata=rowMeans(Mat, na.rm = TRUE)
+  Ma  =rowMeans(M,   na.rm = TRUE)
+  
+  A=length(Wa)
+  q_age=numeric(A)
+  
+  for (a in seq_len(A)) {
+    surv=1
+    q_at=0
     
+    for (k in a:A) {
+      if (k > a) {
+        surv=surv * exp(-Ma[k - 1])
+      }
+      
+      q_at=q_at + surv * Wa[k] * Mata[k] * exp(-theta * Ma[k])
+    }
+    
+    if (plusgroup) {
+      q_at=q_at + surv *
+        (Wa[A] * Mata[A] * exp(-theta * Ma[A]) / (1 - exp(-Ma[A])))
+    }
+    
+    q_age[a]=q_at}
+  
+  q_mat=matrix(
+    rep(q_age, times = ncol(W)),
+    nrow = A,
+    ncol = ncol(W),
+    dimnames = dimnames(W))
+  
+  q_mat}
+
+ss3EqvlCatch<-function(CN, W, Mat, M,
+                       theta = 0.5,
+                       plusgroup = TRUE,
+                       method = c("finite", "stationary")) {
+  method=match.arg(method)
+  
+  stopifnot(
+    is.matrix(CN), is.matrix(W), is.matrix(Mat), is.matrix(M),
+    all(dim(CN)  == dim(W)),
+    all(dim(Mat) == dim(W)),
+    all(dim(M)   == dim(W)))
+  
+  q=switch(
+    method,
+    finite = ss3qSSB(
+      W = W, Mat = Mat, M = M,
+      theta = theta, plusgroup = plusgroup),
+    stationary = ss3qStationary(
+      W = W, Mat = Mat, M = M,
+      theta = theta, plusgroup = plusgroup))
+  
+  C_ssb_at=CN * q
+  C_ssb=colSums(C_ssb_at, na.rm = TRUE)
+  
+  list(
+    C_ssb = C_ssb,
+    C_ssb_at = C_ssb_at,
+    q = q,
+    method = method)}
+
+ss3VB<-function(N, W, V, Z = NULL, timing = c("start", "mid"), fraction = 0.5) {
+  timing=match.arg(timing)
+  if (timing == "start") {
+    return(colSums(N * W * V, na.rm = TRUE))}
+  
+  if (is.null(Z)) stop("Z required for mid-year vulnerable biomass")
+  colSums(N * exp(-fraction * Z) * W * V, na.rm = TRUE)}
+
+getSP<-function(object){
+  
+  replist=SS_output(object,verbose=FALSE,covar=FALSE,printstats=FALSE)
+  fls    =ss3om:::readFLSss3(object)
+  obj    =ss3Objects(replist, fls)
+  
+  ages =obj$ages
+  years=obj$years
+  
+  ## 1. Maturity, selectivity, catch-at-age from FLR on SS3 grid
+  
+  Mat=mat(fls)
+  Mat=Mat[as.character(ages),as.character(years),1, 1, 1, 1, drop = TRUE]
+  Mat=as.matrix(Mat)
+  
+  # Selectivity proxy: harvest as F-at-age pattern
+  Sel=harvest(fls)
+  Sel=Sel[as.character(ages),as.character(years),1, 1, 1, 1, drop = TRUE]
+  
+  V=as.matrix(Sel)
+  
+  # Catch numbers-at-age
+  Ctc=catch.n(fls)  # FLQuant age × year
+  Ctc=Ctc[as.character(ages),as.character(years),1, 1, 1, 1, drop = TRUE]
+  Ctc=as.matrix(Ctc)
+  
+  
+  ## 2. SSB-equivalent catch and vulnerable biomass
+  # Choose q method: "finite" or "stationary"
+  q_method="stationary"
+  
+  ssbEqv=ss3EqvlCatch(CN       = Ctc,
+                      W        = obj$W,
+                      Mat      = Mat,
+                      M        = obj$M,
+                      theta    = 0.5,
+                      plusgroup= TRUE,
+                      method   = q_method)
+  
+  VB=ss3VB(N      = obj$N,
+           W      = obj$W,
+           V      = V,
+           Z      = NULL,
+           timing = "start")
+  
+  
+  
+  B_df =obj$SSB                # columns: year, SSB
+  C_ssb=ssbEqv$C_ssb           # named vector or same order
+  
+  yrs=intersect(B_df$year, as.numeric(names(C_ssb)))
+  B  =B_df$SSB[match(yrs, B_df$year)]
+  C_t=C_ssb[match(yrs, as.numeric(names(C_ssb)))]
+  
+  # P_t = B_{t+1} - B_t + C_t
+  B_t  =B[-length(B)]
+  B_tp1=B[-1]
+  C_t_ =C_t[-length(C_t)]
+  
+  P_ssb=B_tp1 - B_t + C_t_
+  
+  data.frame(
+    year = yrs[-length(yrs)],
+    ssb  = B_t,
+    vb   = VB[-length(VB)],
+    sp2  = P_ssb)}
+
+
 # The plot shows that the stock’s realised yield and surplus production at a given SSB vary widely over time, and that the deviations are strongly structured, not simple white‑noise process error. 
 #  
 # ## Yield and surplus production vs SSB

@@ -1,0 +1,243 @@
+---
+title: "Parameterising a Ricker Stock-Recruitment Relationship by the Location of the Peak"
+author: "Laurie Kell"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+## Overview
+
+The standard Ricker stock-recruitment relationship can be written as
+
+$$
+R(S) = \alpha S \exp(-\beta S)
+$$
+
+where:
+
+-   $R(S)$ is recruitment at spawning-stock biomass $S$;
+-   $\alpha$ controls productivity at low stock size;
+-   $\beta$ controls the strength of density dependence.
+
+This note shows how to parameterise the Ricker relationship so that the peak in recruitment occurs at a specified spawning biomass, $S_{\text{peak}}$.
+
+## Location of the peak
+
+To find the spawning biomass at which recruitment is maximised, differentiate $R(S)$ with respect to $S$:
+
+$$
+\frac{dR}{dS}
+=
+\alpha \exp(-\beta S)(1 - \beta S).
+$$
+
+The maximum occurs when
+
+$$
+1 - \beta S = 0.
+$$
+
+Therefore, the peak occurs at
+
+$$
+S_{\text{peak}} = \frac{1}{\beta}.
+$$
+
+So, if we want the peak of the Ricker curve to occur at a specified spawning biomass $S_{\text{peak}}$, we set
+
+$$
+\beta = \frac{1}{S_{\text{peak}}}.
+$$
+
+The Ricker relationship can then be written as
+
+$$
+R(S) =
+\alpha S
+\exp\left(-\frac{S}{S_{\text{peak}}}\right).
+$$
+
+## Parameterisation using maximum recruitment
+
+If we want to parameterise the curve in terms of the maximum recruitment $R_{\max}$, rather than $\alpha$, note that at the peak
+
+$$
+R_{\max}
+=
+R(S_{\text{peak}})
+=
+\alpha S_{\text{peak}} \exp(-1).
+$$
+
+Rearranging gives
+
+$$
+\alpha =
+\frac{e R_{\max}}{S_{\text{peak}}}.
+$$
+
+Substituting this into the Ricker equation gives the peak-parameterised form
+
+$$
+R(S) =
+R_{\max}
+\left(\frac{S}{S_{\text{peak}}}\right)
+\exp\left(1 - \frac{S}{S_{\text{peak}}}\right).
+$$
+
+This form has two intuitive parameters:
+
+-   $S_{\text{peak}}$, the spawning biomass at which recruitment is maximised;
+-   $R_{\max}$, the maximum recruitment.
+
+## R implementation
+
+The peak-parameterised Ricker curve can be implemented as follows:
+
+```{r ricker-peak-function}
+ricker_peak <- function(S, S_peak, R_max) {
+  R_max * (S / S_peak) * exp(1 - S / S_peak)
+}
+```
+
+Alternatively, if retaining the original $\alpha, \beta$ notation, set
+
+$$
+\beta = \frac{1}{S_{\text{peak}}}
+$$
+
+and use:
+
+```{r ricker-alpha-beta-function}
+ricker_alpha_beta <- function(S, alpha, S_peak) {
+  beta <- 1 / S_peak
+  alpha * S * exp(-beta * S)
+}
+```
+
+Thus, fixing the location of the peak is equivalent to fixing $\beta$, while $\alpha$ determines the vertical scale of the curve.
+
+## Example
+
+Suppose recruitment is to peak at $S_{\text{peak}} = 100$, with $R_{\max} = 1000$.
+
+```{r example-parameters}
+S_peak <- 100
+R_max  <- 1000
+
+S <- seq(0, 300, length.out = 200)
+R <- ricker_peak(S, S_peak = S_peak, R_max = R_max)
+```
+
+The curve can be plotted as follows:
+
+```{r example-plot, fig.width=7, fig.height=5}
+plot(
+  S, R,
+  type = "l",
+  lwd = 2,
+  xlab = "Spawning-stock biomass, S",
+  ylab = "Recruitment, R(S)",
+  main = "Ricker stock-recruitment relationship"
+)
+
+abline(v = S_peak, lty = 2, col = "red")
+abline(h = R_max,  lty = 2, col = "blue")
+
+points(S_peak, R_max, pch = 16, col = "red")
+
+legend(
+  "topright",
+  legend = c(expression(S[peak]), expression(R[max])),
+  lty = 2,
+  col = c("red", "blue"),
+  bty = "n"
+)
+```
+
+## Relationship between $\alpha$, $S_{\text{peak}}$, and $R_{\max}$
+
+Given $S_{\text{peak}}$ and $R_{\max}$, the equivalent value of $\alpha$ is
+
+$$
+\alpha =
+\frac{e R_{\max}}{S_{\text{peak}}}.
+$$
+
+In R:
+
+```{r alpha-from-peak}
+alpha_from_peak <- function(S_peak, R_max) {
+  exp(1) * R_max / S_peak
+}
+
+alpha <- alpha_from_peak(S_peak, R_max)
+alpha
+```
+
+The corresponding value of $\beta$ is
+
+$$
+\beta = \frac{1}{S_{\text{peak}}}.
+$$
+
+```{r beta-from-peak}
+beta <- 1 / S_peak
+beta
+```
+
+Using these values in the original Ricker form gives the same curve:
+
+```{r compare-forms}
+R_ab <- alpha * S * exp(-beta * S)
+
+all.equal(R, R_ab)
+```
+
+## Summary
+
+For a Ricker stock-recruitment relationship
+
+$$
+R(S) = \alpha S \exp(-\beta S),
+$$
+
+the peak occurs at
+
+$$
+S_{\text{peak}} = \frac{1}{\beta}.
+$$
+
+Therefore, to place the peak at a chosen spawning biomass $S_{\text{peak}}$, set
+
+$$
+\beta = \frac{1}{S_{\text{peak}}}.
+$$
+
+If the desired maximum recruitment is $R_{\max}$, then
+
+$$
+\alpha =
+\frac{e R_{\max}}{S_{\text{peak}}},
+$$
+
+giving the equivalent peak-parameterised form
+
+$$
+R(S) =
+R_{\max}
+\left(\frac{S}{S_{\text{peak}}}\right)
+\exp\left(1 - \frac{S}{S_{\text{peak}}}\right).
+$$

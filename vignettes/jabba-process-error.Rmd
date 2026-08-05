@@ -1,0 +1,104 @@
+---
+title: "JABBA Process-Error Diagnostics"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{JABBA Process-Error Diagnostics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+Extract the JABBA process-error time series into `FLQuants` and produce the
+standard four-panel residual diagnostics used for process-error review.
+
+# Setup
+
+```{r setup}
+library(FLCore)
+library(FLRebuild)
+library(ggplot2)
+```
+
+# From a JABBA fit
+
+After fitting with `runJABBA()` / `jabba()`, process deviations are in
+`fit$timeseries[,"mu","procB"]`.
+
+```{r jabba-ts, eval=FALSE}
+fit <- runJABBA(stk, method = "ices", quick = TRUE)
+jbTs <- jabbaTs(fit)
+names(jbTs)
+# stock harvest bbmsy ffmsy pe sprod
+```
+
+`jabbaTs()` maps:
+
+| FLQuants name | JABBA quantity |
+|---------------|----------------|
+| `stock`       | `B`            |
+| `harvest`     | `F`            |
+| `bbmsy`       | `BBmsy`        |
+| `ffmsy`       | `FFmsy`        |
+| `pe`          | `procB`        |
+| `sprod`       | `SPt`          |
+
+# Four-panel diagnostics
+
+```{r plot-pe-fit, eval=FALSE}
+plotPe(jbTs)
+# or directly:
+# plotPe(fit)
+```
+
+Panels:
+
+1. **Time** — residuals vs year, with optional STARS regime polygons (`rod()`).
+2. **Status** — residuals vs \(B/B_{MSY}\) (bias / heteroscedasticity).
+3. **ACF** — temporal dependence beyond white noise.
+4. **Histogram** — residual distribution vs a normal density.
+
+# Illustration without a JABBA run
+
+```{r simulate}
+set.seed(1)
+yrs <- 1980:2020
+n <- length(yrs)
+pe <- rnorm(n, 0, 0.15)
+pe[25:35] <- pe[25:35] + 0.35
+bbmsy <- pmax(0.2, 1.2 - seq_len(n) / n + rnorm(n, 0, 0.05))
+
+jbTs <- FLQuants(
+  pe    = as.FLQuant(data.frame(year = yrs, data = pe)),
+  bbmsy = as.FLQuant(data.frame(year = yrs, data = bbmsy))
+)
+
+plotPe(jbTs)
+```
+
+# Relation to `jabbaPE()`
+
+- `jabbaTs()` / `plotPe()` use JABBA's estimated state process deviations (`procB`).
+- `jabbaPE()` builds the production curve and derives residuals from
+  \(B_{t+1}\) vs expected \(B_t + P(B_t) - C_t\).
+
+Use `jabbaTs` for diagnostics of the fitted state-space process; use `jabbaPE`
+when you want production-function phase plots and derived surplus-production
+residuals.
+
+# See also
+
+- `vignettes/jabba-workflow.Rmd` for fitting
+- `rod()` / `rodFn()` for STARS regime detection
+- `jabbaPE()` for production-function residuals

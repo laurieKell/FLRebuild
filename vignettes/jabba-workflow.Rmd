@@ -135,6 +135,10 @@ names(ext)
 # Optional diagnostics/plots:
 # FLRebuild::jabbaDiagnostics(fit)
 # FLRebuild::jbplot(list(base = fit))
+
+# Process-error time series and four-panel diagnostics:
+# ts <- FLRebuild::jabbaTs(fit)
+# FLRebuild::plotPe(ts)
 ```
 
 # Wide reference table is now separate

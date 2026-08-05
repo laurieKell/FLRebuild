@@ -26,6 +26,8 @@ Type objective_function<Type>::operator() () {
   DATA_VECTOR( prior_s ); // Prior vector for s, [logit(mean), stdev in logit, useflag]
   DATA_VECTOR(prior_r0); // Optional prior for log_r0: [mean, sd]
   DATA_VECTOR( spr0 );
+  DATA_INTEGER(use_b0); // 0 = v(t)=r0*spr0(t); 1 = v(t)=b0(t)
+  DATA_VECTOR( b0yr );
   DATA_INTEGER(nyears);
   DATA_INTEGER(Rmodel); // Recruitment model
 
@@ -46,35 +48,37 @@ Type objective_function<Type>::operator() () {
   Type ans=0;
   vector<Type> v(nyears);
 
+  for(int t=0; t<nyears; t++){
+    if(use_b0 == 1)
+      v(t) = b0yr(t);
+    else
+      v(t) = r0 * spr0(t);
+  }
+
   if(Rmodel==0){ // bevholtSV()
    for( int t=0; t< nyears; t++){
-     v(t)=r0*spr0(t);
      log_rec_hat(t) = log(4.0 * s * r0 *ssb(t) / (v(t)*(1.0-s)+ssb(t)*(5.0*s-1.0)));//-pow(sigR,2)/2.0;
      }}
 
    if(Rmodel==1){ // rickerSV()
      for( int t=0; t< nyears; t++){
-       v(t)=r0*spr0(t);
        b = log(5.0*s)/(0.8*v(t));
-       a = exp(b*v(t))/spr0(t);
+       if(use_b0 == 1)
+         a = r0 * exp(b*v(t))/v(t);
+       else
+         a = exp(b*v(t))/spr0(t);
        log_rec_hat(t) = log(a*ssb(t)*exp(-b*ssb(t)));
-       //log_rec_hat(t) = log(r0 * ssb(t) / v * exp(s*(1.0-ssb(t)/v)));
      }}
    
    if(Rmodel==2){ // segreg() aka Hockey Stick
      for( int t=0; t< nyears; t++){
-       v(t)=r0*spr0(t);
        log_rec_hat(t) = log(r0)+log(2.5*s/v(t)*(ssb(t)+exp(log_inflect)-pow(pow(ssb(t)-exp(log_inflect),2.0),0.5)));//-pow(sigR,2)/2.0;
      }}
 
 
    // Depensatory Beverton and Holt
-   // r=a/(1+(b/S)^d)
-   // V=a*spr0
-   // h=((1+b/V)^d)/((1+b/V*0.4)^d)
    if(Rmodel==3){ 
      for( int t=0; t< nyears; t++){
-       v(t)=r0*spr0(t);
        log_rec_hat(t) = log(r0)+log(2.5*s/v(t)*(ssb(t)+0.2*v(t)/s-pow(pow(ssb(t)-0.2*v(t)/s,2.0),0.5)));//-pow(sigR,2)/2.0;
      }}
    
@@ -124,47 +128,6 @@ Type objective_function<Type>::operator() () {
 //   REPORT( b );
    REPORT( s );
    ADREPORT(r0);
-   ADREPORT(v);
+   if(use_b0 == 0) ADREPORT(v);
 // 
    return ans;}
-
-
-// loglAR1 function(obs, hat, rho = 0) 
-//  calculates likelihood for AR(1) process
-//for( int t=0; t< nyears; t++){
-//             n <- length(obs)
-//             rsdl <- (obs[-1] - rho * obs[-n] - hat[-1] + rho * hat[-n])
-//             s2 <- sum(rsdl^2, na.rm = T)
-//             s1 <- s2
-//             if (!all(is.na(rsdl[1]))) 
-//               s1 <- s1 + (1 - rho^2) * (obs[1] - hat[1])^2
-//             sigma2 <- sum((obs - hat)^2)
-//               n <- length(obs[!is.na(obs)])
-//               sigma2.a <- (1 - rho^2) * sigma2
-//               res <- (log(1/(2 * pi)) - n * log(sigma2.a) + log(1 - rho^2) - s1/(2 * sigma2.a))/2
-//             if (!is.finite(res)) res <- -1e+100
-//             return(res)}) # }}}
-
-// R_init_FLRebuild is automatically created by TMB when TMB_LIB_INIT is defined above
-// This registers all TMB symbols including getParameterOrder
-// Rcpp routines are registered separately via R_init_FLRebuild_Rcpp
-// which should be called, but since TMB owns R_init_FLRebuild, we need another approach
-// One solution: Use Rcpp attributes for auto-registration, or ensure Rcpp init is called
-// For now, let TMB create R_init_FLRebuild automatically (no manual definition needed)
-// We need to also register Rcpp routines. Since TMB creates the function,
-// we need to ensure Rcpp registration happens. We'll use R_RegisterCCallable
-// or modify the approach. Actually, the best way is to call Rcpp init from
-// within the TMB-generated function, but we can't modify that.
-// Solution: Remove manual R_init_FLRebuild and let TMB create it.
-// Then use Rcpp attributes or call Rcpp init separately.
-// For now, let's try calling Rcpp init in a way that works with TMB's auto-generated init.
-// Actually, we can use R_init_FLRebuild_Rcpp as a separate callable that TMB's init can call,
-// but TMB doesn't expose that mechanism.
-// Better: Use Rcpp's R_init_<pkg>_Rcpp which can be called separately, or use attributes.
-// Simplest: Let TMB create R_init_FLRebuild, and ensure Rcpp routines are registered via attributes.
-// But since we're manually calling R_init_FLRebuild_Rcpp, we need to call it.
-// The solution: Don't define R_init_FLRebuild manually when TMB_LIB_INIT is set.
-// Instead, we need to ensure Rcpp init is called. One way is to use R's .onLoad to call it,
-// or use Rcpp's attribute system. But the cleanest is to modify RcppExports to use attributes.
-// For now, let's comment out the manual function and see if we need Rcpp init at all,
-// or if we can register it differently.

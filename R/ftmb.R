@@ -37,6 +37,30 @@
   }
 }
 
+# Align FLQuant or numeric b0 to the year dimension of an FLSR object
+.b0AlignYr <- function(b0, object) {
+  # Prefer dimnames (calendar years). dims(...)$year is only the count.
+  yrs <- as.numeric(dimnames(ssb(object))$year)
+  if (!length(yrs))
+    yrs <- seq(as.numeric(dims(ssb(object))$minyear),
+               as.numeric(dims(ssb(object))$maxyear))
+  nyr <- length(c(ssb(object)))
+  if (inherits(b0, "FLQuant")) {
+    df <- as.data.frame(b0, drop = TRUE)
+    df$year <- as.numeric(df$year)
+    out <- df$data[match(yrs, df$year)]
+  } else {
+    out <- as.numeric(b0)
+    if (length(out) == nyr)
+      return(out)
+    stop("Length of b0 (", length(out), ") must match number of SRR years (", nyr, ").")
+  }
+  if (any(is.na(out)))
+    stop("Could not align b0 to SRR years; missing: ",
+         paste(yrs[is.na(out)], collapse = ", "))
+  out
+}
+
 # srrTMB {{{
 
 #' Fits Stock Recruitment Relationships (SRR) in TBM
@@ -75,15 +99,15 @@ ftmb<-function(object,
                inflect=NA,
                inits=function(object=object,s=s,inflect=inflect) {
                  inflect_init <- ifelse(is.na(inflect), 0, log(inflect))
-                 c(median(c(log(rec(object)))), log(0.40), toLogits(s), inflect_init)
+                 c(median(c(log(rec(object))), na.rm=TRUE), log(0.40), toLogits(s), inflect_init)
                },
                lower=function(object=object,s=-20,inflect=inflect) {
                  inflect_lower <- ifelse(is.na(inflect), -20, log(inflect))
-                 c(quantile(c(log(rec(object))),probs=0.1), log(0.05), -20, inflect_lower)
+                 c(quantile(c(log(rec(object))),probs=0.1, na.rm=TRUE), log(0.05), -20, inflect_lower)
                },
                upper=function(object=object,s= 20,inflect=inflect) {
                  inflect_upper <- ifelse(is.na(inflect), 20, log(inflect))
-                 c(quantile(c(log(rec(object))),probs=0.9), log(1.50), 20, inflect_upper)
+                 c(quantile(c(log(rec(object))),probs=0.9, na.rm=TRUE), log(1.50), 20, inflect_upper)
                },
                SDreport=TRUE,
                prior_s=NULL, cv_s=NULL, prior_r0=NULL, cv_r0=NULL) {
@@ -129,7 +153,8 @@ ftmb<-function(object,
   # SET TMB input
   inp=list(
     # data
-    Data = list(ssb=ssb, rec=rec, prior_s = prior_s_vec, spr0=spr0., nyears=length(ssb),
+    Data = list(ssb=ssb, rec=rec, prior_s = prior_s_vec, spr0=spr0., use_b0=0L,
+                b0yr=rep(0, length(ssb)), nyears=length(ssb),
                 # model
                 Rmodel = which(model==c("bevholtSV","rickerSV","segreg"))-1),
                 # inits
@@ -249,11 +274,11 @@ ftmb2<-function(object,
                },
                lower=function(object=object,s=-20,inflect=inflect) {
                  inflect_lower <- ifelse(is.na(inflect), -20, log(inflect))
-                 c(quantile(c(log(rec(object))),probs=0.1), log(0.05), -20, inflect_lower)
+                 c(quantile(c(log(rec(object))),probs=0.1, na.rm=TRUE), log(0.05), -20, inflect_lower)
                },
                upper=function(object=object,s= 20,inflect=inflect) {
                  inflect_upper <- ifelse(is.na(inflect), 20, log(inflect))
-                 c(quantile(c(log(rec(object))),probs=0.9), log(1.50), 20, inflect_upper)
+                 c(quantile(c(log(rec(object))),probs=0.9, na.rm=TRUE), log(1.50), 20, inflect_upper)
                },
                short   =TRUE,
                SDreport=short,
@@ -298,7 +323,8 @@ ftmb2<-function(object,
   # SET TMB input
   inp=list(
     # data
-    Data = list(ssb=ssb, rec=rec, prior_s = prior_s_vec, spr0=spr0., nyears=length(ssb),
+    Data = list(ssb=ssb, rec=rec, prior_s = prior_s_vec, spr0=spr0., use_b0=0L,
+                b0yr=rep(0, length(ssb)), nyears=length(ssb),
                 # model
                 Rmodel = which(model==c("bevholtSV","rickerSV","segreg"))-1),
                 # inits
@@ -468,3 +494,183 @@ ftmb3 <- function(object, spr0=spr0, ..., n_params=2, param_names=c("a","b")) {
   }
   
   return(FLPar(param_array))}
+
+#' Fits Stock Recruitment Relationships with dynamic virgin biomass (B0)
+#'
+#' Like \code{\link{ftmb2}}, but virgin biomass \eqn{v_t} is supplied externally
+#' from dynamic B0 rather than computed as \code{spr0 * R0}. Dynamic B0 can be
+#' obtained from an \code{FLStock} via \code{b0dyn()} in the icesdata package.
+#'
+#' @param object Input \code{FLSR} object.
+#' @param stock Optional \code{FLStock} used to compute dynamic B0 with
+#'   \code{b0dyn()} when \code{b0} is not supplied.
+#' @param sr_b0 Optional \code{FLSR} for SS3-style \code{b0dyn(stock, sr)} when
+#'   computing B0 from \code{stock}. Use a prior assessment fit to supply
+#'   recruitment deviations; do not pass the \code{object} being fitted.
+#' @param niter Only used when \code{ssb_b0 = "unfished"} (default 3).
+#' @param ssb_b0 Passed to \code{b0dyn}: \code{"observed"} (default) or \code{"unfished"}.
+#' @param b0 Optional dynamic virgin biomass by year (\code{FLQuant} or numeric).
+#'   If omitted, \code{stock} must be provided and icesdata must be loaded.
+#' @inheritParams ftmb2
+#'
+#' @return An \code{FLSR} object with fitted values, residuals, and parameters.
+#'   The \code{v} slot in params holds the supplied dynamic B0; \code{spr0} is
+#'   derived post-fit as \code{v / R0}.
+#'
+#' @examples
+#' \dontrun{
+#' library(icesdata)
+#' load(neamac)
+#' spr0 <- spr0Yr(neamac)
+#' sr <- as.FLSR(neamac, model = "bevholtSV")
+#' sr_dyn <- ftmb_b0dyn(sr, stock = neamac, s.est = TRUE, s = 0.7, s.logitsd = 0.3)
+#' }
+#'
+#' @export
+ftmb_b0dyn <- function(object,
+                       stock = NULL,
+                       b0 = NULL,
+                       sr_b0 = NULL,
+                       ssb_b0 = "observed",
+                       niter = 3L,
+                       model = SRModelName(FLCore::model(object)),
+                       s = 0.7, s.est = TRUE, s.logitsd = 1.3,
+                       inflect = NA,
+                       inits = function(object = object, s = s, inflect = inflect) {
+                         inflect_init <- ifelse(is.na(inflect), 0, log(inflect))
+                         c(median(c(log(rec(object))), na.rm = TRUE), log(0.40), toLogits(s), inflect_init)
+                       },
+                       lower = function(object = object, s = -20, inflect = inflect) {
+                         inflect_lower <- ifelse(is.na(inflect), -20, log(inflect))
+                         c(quantile(c(log(rec(object))), probs = 0.1, na.rm = TRUE), log(0.05), -20, inflect_lower)
+                       },
+                       upper = function(object = object, s = 20, inflect = inflect) {
+                         inflect_upper <- ifelse(is.na(inflect), 20, log(inflect))
+                         c(quantile(c(log(rec(object))), probs = 0.9, na.rm = TRUE), log(1.50), 20, inflect_upper)
+                       },
+                       short = TRUE,
+                       SDreport = short,
+                       prior_s = NULL, cv_s = NULL, prior_r0 = NULL, cv_r0 = NULL) {
+
+  if (is.null(s) & s.est) s <- 0.6
+
+  rec <- c(rec(object))
+  ssb <- c(ssb(object))
+  nyears <- length(ssb)
+
+  b0vec <- if (is.null(b0)) {
+    if (is.null(stock))
+      stop("Provide 'b0' or 'stock' for dynamic virgin biomass.")
+    if (!exists("b0dyn", mode = "function"))
+      stop("Load icesdata to compute b0 from stock, or pass 'b0' directly.")
+    b0q <- if (!is.null(sr_b0))
+      b0dyn(stock, sr = sr_b0, ssb = ssb_b0, niter = niter)
+    else
+      b0dyn(stock)
+    .b0AlignYr(b0q, object)
+  } else if (length(b0) == 1 && !inherits(b0, "FLQuant")) {
+    rep(b0, nyears)
+  } else {
+    .b0AlignYr(b0, object)
+  }
+
+  if (length(b0vec) != nyears)
+    stop("Length of b0 (", length(b0vec), ") must match number of SRR years (", nyears, ").")
+  if (any(!is.finite(b0vec)) || any(b0vec <= 0))
+    stop("All dynamic B0 values must be finite and positive.")
+
+  inits. <- inits(object, s, inflect)
+  lower. <- lower(object, inflect = inflect)
+  upper. <- upper(object, inflect = inflect)
+
+  if (!is.null(prior_s) & !is.null(cv_s)) {
+    prior_s_logit <- toLogits(prior_s)
+    prior_s_sd <- sqrt(log(1 + cv_s^2))
+    prior_s_vec <- c(prior_s_logit, prior_s_sd)
+  } else {
+    prior_s_vec <- c(toLogits(s), s.logitsd)
+  }
+
+  if (!is.null(prior_r0) & !is.null(cv_r0)) {
+    prior_r0_log <- log(prior_r0)
+    prior_r0_sd <- sqrt(log(1 + cv_r0^2))
+    prior_r0_vec <- c(prior_r0_log, prior_r0_sd)
+  } else {
+    prior_r0_vec <- NULL
+  }
+
+  inp <- list(
+    Data = list(ssb = ssb, rec = rec, prior_s = prior_s_vec,
+                spr0 = rep(1, nyears), use_b0 = 1L, b0yr = b0vec,
+                nyears = nyears,
+                Rmodel = which(model == c("bevholtSV", "rickerSV", "segreg")) - 1),
+    Params = list(log_r0 = inits.[1], log_sigR = inits.[2], logit_s = inits.[3], log_inflect = inits.[4]),
+    lower = lower., upper = upper.,
+    ReportSD = SDreport
+  )
+  inp$Data$prior_r0 <- if (!is.null(prior_r0_vec)) prior_r0_vec else numeric(0)
+
+  Map <- list()
+  if (!s.est) Map[["logit_s"]] <- factor(NA)
+  if (!is.na(inflect)) Map[["log_inflect"]] <- factor(NA)
+
+  .ensureTMBdll("FLRebuild")
+
+  Obj <- TMB::MakeADFun(data = inp$Data, parameters = inp$Params, map = Map,
+                        DLL = "FLRebuild", silent = TRUE)
+
+  capture.output({
+    Opt <- stats::nlminb(start = Obj$par, objective = Obj$fn, gradient = Obj$gr,
+                         control = list("trace" = 1, "eval.max" = 1e4, "iter.max" = 1e4),
+                         lower = inp$lower, upper = inp$upper)
+  })
+
+  Opt[["diagnostics"]] <- data.frame(Est = Opt$par, final_gradient = Obj$gr(Opt$par))
+
+  Report <- Obj$report()
+
+  if (SDreport) SD <- try(TMB::sdreport(Obj))
+
+  model(object) <- switch(model, bevholtSV = bevholt, rickerSV = ricker, segreg = segreg)
+
+  fitted(object) <- c(Report$rec_hat)
+  residuals(object) <- log(rec(object)) - log(fitted(object))
+
+  params(object) <- FLPar(s = Report$s, R0 = Report$r0)
+  params(object) <- propagate(params(object), nyears)
+  params(object) <- rbind(params(object), FLPar(spr0 = b0vec / Report$r0))
+  params(object) <- rbind(params(object), FLPar(v = b0vec))
+  params(object) <- params(object)[c("s", "v", "spr0")]
+
+  if (model == "segreg") {
+    if (is.na(inflect)) {
+      inflect_val <- exp(Report$log_inflect)
+    } else {
+      inflect_val <- inflect
+    }
+    a_val <- Report$r0 / inflect_val
+    params(object) <- FLPar(a = a_val, b = inflect_val)
+  } else {
+    par <- as(as.data.frame(aaply(params(object)[c("s", "v", "spr0")], 2,
+                                  function(x) ab(FLPar(x), gsub("SV", "", model)))), "FLPar")[c("a", "b")]
+    params(object) <- par
+  }
+
+  df <- function(s.est, inflect) {
+    num_params <- 2
+    if (s.est) num_params <- num_params + 1
+    if (is.na(inflect)) num_params <- num_params + 1
+    num_params
+  }
+
+  logLik(object) <- -Opt$objective
+  logLik(object)["df"] <- df(s.est, inflect)
+
+  attr(object, "b0dyn") <- TRUE
+
+  if (short) {
+    attr(object, "short_result") <- TRUE
+    return(object)
+  }
+
+  return(object)}
