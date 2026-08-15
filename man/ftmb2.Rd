@@ -22,13 +22,13 @@ ftmb2(
      inflect_lower <-
     ifelse(is.na(inflect), -20, log(inflect))
      c(quantile(c(log(rec(object))), probs
-    = 0.1), log(0.05), -20, inflect_lower)
+    = 0.1, na.rm = TRUE), log(0.05), -20, inflect_lower)
  },
   upper = function(object = object, s = 20, inflect = inflect) {
      inflect_upper <-
     ifelse(is.na(inflect), 20, log(inflect))
      c(quantile(c(log(rec(object))), probs =
-    0.9), log(1.5), 20, inflect_upper)
+    0.9, na.rm = TRUE), log(1.5), 20, inflect_upper)
  },
   short = TRUE,
   SDreport = short,
@@ -71,7 +71,8 @@ ftmb2(
 A list containing elements 'FLSR', of class *FLSR*
 }
 \description{
-Fits Stock Recruitment Relationships (SRR) in TBM (with flexible priors for s and r0)
+Not exported. Use \code{icesdata::ftmb2} for standard fits. This copy
+exists so \code{ftmb_b0dyn} can use the FLRebuild TMB DLL (\code{use_b0}).
 }
 \examples{
 # See ftmb for usage

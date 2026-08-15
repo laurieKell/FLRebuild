@@ -22,7 +22,7 @@ An FLPar object with dimensions [params, year, iter] if data has iterations,
         otherwise returns the same as ftmb2
 }
 \description{
-Fits Stock Recruitment Relationships (SRR) in TBM with iteration support
+Not exported. Use \code{icesdata::ftmb3}.
 }
 \examples{
 # Single fit (no iterations)

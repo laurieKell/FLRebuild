@@ -6,6 +6,11 @@
 #           Iago MOSQUEIRA (WMR) <iago.mosqueira@wur.nl>
 #
 # Distributed under the terms of the EUPL-1.2
+#
+# Public SRR API is in icesdata: ftmb, ftmb2, ftmb3, eql, eqlFn, b0dyn.
+# This file keeps a private TMB copy (DLL = "FLRebuild") because the template
+# includes use_b0 / b0yr, which the icesdata DLL does not. The only public
+# function here is ftmb_b0dyn(). Call icesdata::ftmb / ftmb2 for standard fits.
 
 # Helper function to ensure TMB DLL is loaded
 # Works with useDynLib() in NAMESPACE or loads manually if needed
@@ -81,9 +86,10 @@
 #' @param cv_r0 Optional coefficient of variation for r0 prior
 #'
 #' @return A list containing elements 'FLSR', of class *FLSR*
-#' 
-#' @export
-#' 
+#'
+#' @keywords internal
+#' @noRd
+#'
 #' \dontrun{
 #' load(neamac)
 #' 
@@ -262,7 +268,8 @@ ftmb<-function(object,
 #' @examples
 #' # See ftmb for usage
 #'
-#' @export
+#' @keywords internal
+#' @noRd
 ftmb2<-function(object,         
                spr0=spr0, 
                model=SRModelName(FLCore::model(object)),
@@ -434,7 +441,8 @@ ftmb2<-function(object,
 #' 
 #' # Bootstrap fit with iterations
 #' sr <- ftmb3(flsr_object_with_iters, spr0=0.7)
-#' @export
+#' @keywords internal
+#' @noRd
 ftmb3 <- function(object, spr0=spr0, ..., n_params=2, param_names=c("a","b")) {
   
   # Check if data has iterations
@@ -497,33 +505,37 @@ ftmb3 <- function(object, spr0=spr0, ..., n_params=2, param_names=c("a","b")) {
 
 #' Fits Stock Recruitment Relationships with dynamic virgin biomass (B0)
 #'
-#' Like \code{\link{ftmb2}}, but virgin biomass \eqn{v_t} is supplied externally
-#' from dynamic B0 rather than computed as \code{spr0 * R0}. Dynamic B0 can be
-#' obtained from an \code{FLStock} via \code{b0dyn()} in the icesdata package.
+#' Like \code{icesdata::ftmb2}, but virgin biomass \eqn{v_t} is supplied
+#' externally rather than computed as \code{spr0 * R0}. This is the only
+#' public TMB SRR in FLRebuild; the FLRebuild DLL supports \code{use_b0}.
+#' A B0 series without an SRR is \code{rec * spr0Yr}. An SS3-style B0 from
+#' a prior fit is \code{icesdata::b0dyn(stock, sr)}.
 #'
 #' @param object Input \code{FLSR} object.
-#' @param stock Optional \code{FLStock} used to compute dynamic B0 with
-#'   \code{b0dyn()} when \code{b0} is not supplied.
-#' @param sr_b0 Optional \code{FLSR} for SS3-style \code{b0dyn(stock, sr)} when
-#'   computing B0 from \code{stock}. Use a prior assessment fit to supply
-#'   recruitment deviations; do not pass the \code{object} being fitted.
-#' @param niter Only used when \code{ssb_b0 = "unfished"} (default 3).
-#' @param ssb_b0 Passed to \code{b0dyn}: \code{"observed"} (default) or \code{"unfished"}.
+#' @param stock Optional \code{FLStock} used with \code{sr_b0} when
+#'   \code{b0} is not supplied.
+#' @param sr_b0 Optional prior \code{FLSR} for \code{icesdata::b0dyn(stock, sr)}.
+#'   Do not pass the \code{object} being fitted.
+#' @param niter Unused; kept for compatibility.
+#' @param ssb_b0 Unused; kept for compatibility.
 #' @param b0 Optional dynamic virgin biomass by year (\code{FLQuant} or numeric).
-#'   If omitted, \code{stock} must be provided and icesdata must be loaded.
+#'   If omitted, pass \code{stock} plus \code{sr_b0}, or compute
+#'   \code{b0 = rec(stock) * spr0Yr(stock)}.
 #' @inheritParams ftmb2
 #'
 #' @return An \code{FLSR} object with fitted values, residuals, and parameters.
 #'   The \code{v} slot in params holds the supplied dynamic B0; \code{spr0} is
 #'   derived post-fit as \code{v / R0}.
 #'
+#' @seealso \code{icesdata::ftmb}, \code{icesdata::ftmb2}, \code{icesdata::b0dyn}
+#'
 #' @examples
 #' \dontrun{
 #' library(icesdata)
 #' load(neamac)
-#' spr0 <- spr0Yr(neamac)
 #' sr <- as.FLSR(neamac, model = "bevholtSV")
-#' sr_dyn <- ftmb_b0dyn(sr, stock = neamac, s.est = TRUE, s = 0.7, s.logitsd = 0.3)
+#' b0 <- rec(neamac) * spr0Yr(neamac)
+#' sr_dyn <- ftmb_b0dyn(sr, b0 = b0, s.est = TRUE, s = 0.7, s.logitsd = 0.3)
 #' }
 #'
 #' @export
@@ -561,12 +573,12 @@ ftmb_b0dyn <- function(object,
   b0vec <- if (is.null(b0)) {
     if (is.null(stock))
       stop("Provide 'b0' or 'stock' for dynamic virgin biomass.")
-    if (!exists("b0dyn", mode = "function"))
-      stop("Load icesdata to compute b0 from stock, or pass 'b0' directly.")
-    b0q <- if (!is.null(sr_b0))
-      b0dyn(stock, sr = sr_b0, ssb = ssb_b0, niter = niter)
-    else
-      b0dyn(stock)
+    if (is.null(sr_b0))
+      stop("icesdata::b0dyn needs an FLSR. Pass b0 (e.g. rec * spr0Yr(stock)) ",
+           "or sr_b0 from a prior fit.")
+    if (!requireNamespace("icesdata", quietly = TRUE))
+      stop("Install icesdata to compute b0 from stock, or pass 'b0' directly.")
+    b0q <- icesdata::b0dyn(stock, sr = sr_b0)
     .b0AlignYr(b0q, object)
   } else if (length(b0) == 1 && !inherits(b0, "FLQuant")) {
     rep(b0, nyears)
