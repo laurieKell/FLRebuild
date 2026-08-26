@@ -251,8 +251,10 @@ rodFn <- function(data, year = NULL, n = 10, sig = 1.68, plot = FALSE) {
 #'
 #' @return A data.frame with regime shift information
 #'
-#' @seealso \code{\link{rodFn}} for the base function, \code{\link{rod,numeric-method}}
-#'   for numeric method, \code{\link{rod,FLQuant-method}} for FLQuant method
+#' @seealso \code{\link{rodFn}} for the base function, \code{\link{rodMn}} and
+#'   \code{\link{rodSD}} for regime mean and SD as \code{FLQuant},
+#'   \code{\link{rod,numeric-method}} for numeric method,
+#'   \code{\link{rod,FLQuant-method}} for FLQuant method
 #'
 #' @export
 setGeneric("rod", function(object, year = NULL, n = 10, sig = 1.68, plot = FALSE, ...) 
@@ -383,6 +385,85 @@ setMethod("rod", signature(object = "FLQuant"),
             )
           })
 
+.rodExpand <- function(rd, valueCol) {
+  need <- c("regime", "minyear", "maxyear", valueCol)
+  if (!is.data.frame(rd) || !nrow(rd) || !all(need %in% names(rd)))
+    return(data.frame())
+  s2 <- rd[!duplicated(rd$regime), c("minyear", "maxyear", valueCol), drop = FALSE]
+  if (!nrow(s2)) return(data.frame())
+  do.call(rbind, lapply(seq_len(nrow(s2)), function(i) {
+    data.frame(
+      year = s2$minyear[i]:s2$maxyear[i],
+      data = s2[[valueCol]][i],
+      stringsAsFactors = FALSE)
+  }))
+}
+
+.rodToFlQuant <- function(rd, valueCol) {
+  if ("iter" %in% names(rd)) {
+    parts <- lapply(split(rd, rd$iter, drop = TRUE), .rodExpand, valueCol = valueCol)
+    parts <- Filter(function(d) is.data.frame(d) && nrow(d), parts)
+    if (!length(parts)) return(FLCore::FLQuant())
+    out <- do.call(rbind, mapply(function(d, it) {
+      d$iter <- as.numeric(it)
+      d
+    }, parts, names(parts), SIMPLIFY = FALSE))
+    rownames(out) <- NULL
+    return(FLCore::as.FLQuant(out))
+  }
+  out <- .rodExpand(rd, valueCol)
+  if (!nrow(out)) return(FLCore::FLQuant())
+  FLCore::as.FLQuant(out)
+}
+
+#' Regime-mean residual shift as an \code{FLQuant}
+#'
+#' Companion to \code{\link{rod}}: expands each regime's mean (\code{mn}) across
+#' its year range. Useful for correcting residuals for a detected mean shift.
+#'
+#' @param object Passed to \code{\link{rod}} (numeric or \code{FLQuant}).
+#' @param ... Extra arguments to \code{\link{rod}} (\code{year}, \code{n},
+#'   \code{sig}, \ldots). \code{plot} is forced to \code{FALSE}.
+#' @return An \code{FLQuant} of regime means by year (and \code{iter} if
+#'   \code{object} is a multi-iteration \code{FLQuant}). Empty or unusable
+#'   regime tables yield an empty \code{FLQuant}.
+#' @export
+#' @examples
+#' \dontrun{
+#' set.seed(123)
+#' x <- FLQuant(c(rnorm(12, 0, 0.5), rnorm(12, 1, 0.5)),
+#'              dimnames = list(year = 1990:2013))
+#' rodMn(x)
+#' }
+#' @seealso \code{\link{rod}}, \code{\link{rodSD}}
+rodMn <- function(object, ...) {
+  .rodToFlQuant(rod(object, plot = FALSE, ...), "mn")
+}
+
+#' Regime residual SD as an \code{FLQuant}
+#'
+#' Companion to \code{\link{rod}}: expands each regime's standard deviation
+#' (\code{sd}) across its year range.
+#'
+#' @param object Passed to \code{\link{rod}} (numeric or \code{FLQuant}).
+#' @param ... Extra arguments to \code{\link{rod}} (\code{year}, \code{n},
+#'   \code{sig}, \ldots). \code{plot} is forced to \code{FALSE}.
+#' @return An \code{FLQuant} of regime SDs by year (and \code{iter} if
+#'   \code{object} is a multi-iteration \code{FLQuant}). Empty or unusable
+#'   regime tables yield an empty \code{FLQuant}.
+#' @export
+#' @examples
+#' \dontrun{
+#' set.seed(123)
+#' x <- FLQuant(c(rnorm(12, 0, 0.5), rnorm(12, 1, 0.5)),
+#'              dimnames = list(year = 1990:2013))
+#' rodSD(x)
+#' }
+#' @seealso \code{\link{rod}}, \code{\link{rodMn}}
+rodSD <- function(object, ...) {
+  .rodToFlQuant(rod(object, plot = FALSE, ...), "sd")
+}
+
 #' Internal Function: Detect First Regime Shift in Time Series
 #'
 #' @description
@@ -504,3 +585,22 @@ ROregimeSHFT <- function(regLN, sig, series, shift = 0) {
   
   return(shifts)
 }
+
+
+rRod<-function(n,object,sd=1,b=0,burn=0,trunc=0,what=c("year","cohort","age")){
+      rods   =rod(object)
+      
+      x=rlnoise(n, object%=%0,sd=sd,b=b,burn=burn,trunc=trunc,what=what)
+      y=log(x)%*%rodSD(object) 
+      z=exp(y%+%rodMn(object))
+      return(z)}
+#' plot(rRod(100,log(rec(ple4)/mean(rec(ple4)))))
+#' ggplot(transform(as.data.frame(rsdl),sid=qname))+
+#' geom_line(aes(year,data))+
+#'   geom_point(aes(year,data))+
+#'   facet_grid(sid~.,scale="free")+
+#'   geom_polygon(aes(year,data,group=regime),
+#'                fill="lavender",col="blue",
+#'                lwd=.25,alpha=.5,
+#'                data=rods)
+

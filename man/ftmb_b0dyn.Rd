@@ -45,7 +45,8 @@ ftmb_b0dyn(
 \arguments{
 \item{object}{Input \code{FLSR} object.}
 
-\item{stock}{Optional \code{FLStock} used with \code{sr_b0} when \code{b0} is not supplied.}
+\item{stock}{Optional \code{FLStock} used with \code{sr_b0} when
+\code{b0} is not supplied.}
 
 \item{b0}{Optional dynamic virgin biomass by year (\code{FLQuant} or numeric).
 If omitted, pass \code{stock} plus \code{sr_b0}, or compute
@@ -57,30 +58,6 @@ Do not pass the \code{object} being fitted.}
 \item{ssb_b0}{Unused; kept for compatibility.}
 
 \item{niter}{Unused; kept for compatibility.}
-
-\item{s}{steepness parameter of SRR (fixed or prior mean)}
-
-\item{s.est}{option to estimate steepness}
-
-\item{s.logitsd}{prior sd for logit(s), default is 1.3 (flat) if s.est = TRUE}
-
-\item{inflect}{Inflection point for the segreg model. If NA (default), it is estimated; if numeric, it is fixed at the provided value.}
-
-\item{inits}{option to specify initial values of log(r0), log(SigR) and logit(s)}
-
-\item{lower}{option to specify lower bounds of log(r0), log(SigR) and logit(s)}
-
-\item{upper}{option to specify upper bounds of log(r0), log(SigR) and logit(s)}
-
-\item{SDreport}{option to converge hessian and get vcov}
-
-\item{prior_s}{Optional prior mean for steepness (s)}
-
-\item{cv_s}{Optional coefficient of variation for steepness prior}
-
-\item{prior_r0}{Optional prior mean for r0}
-
-\item{cv_r0}{Optional coefficient of variation for r0 prior}
 }
 \value{
 An \code{FLSR} object with fitted values, residuals, and parameters.
@@ -90,9 +67,9 @@ An \code{FLSR} object with fitted values, residuals, and parameters.
 \description{
 Like \code{icesdata::ftmb2}, but virgin biomass \eqn{v_t} is supplied
 externally rather than computed as \code{spr0 * R0}. This is the only
-public TMB SRR in FLRebuild. A B0 series without an SRR is
-\code{rec * spr0Yr}. An SS3-style B0 from a prior fit is
-\code{icesdata::b0dyn(stock, sr)}.
+public TMB SRR in FLRebuild; the FLRebuild DLL supports \code{use_b0}.
+A B0 series without an SRR is \code{rec * spr0Yr}. An SS3-style B0 from
+a prior fit is \code{icesdata::b0dyn(stock, sr)}.
 }
 \examples{
 \dontrun{
@@ -103,4 +80,7 @@ b0 <- rec(neamac) * spr0Yr(neamac)
 sr_dyn <- ftmb_b0dyn(sr, b0 = b0, s.est = TRUE, s = 0.7, s.logitsd = 0.3)
 }
 
+}
+\seealso{
+\code{icesdata::ftmb}, \code{icesdata::ftmb2}, \code{icesdata::b0dyn}
 }

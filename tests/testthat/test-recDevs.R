@@ -1,0 +1,45 @@
+test_that("recDevs works on FLSR (log scale by default)", {
+  skip_if_not_installed("FLCore")
+  data(nsher, package = "FLCore")
+  skip_if_not(is(nsher, "FLSR"))
+  rd <- recDevs(nsher)
+  expect_true(is(rd$residuals, "FLQuant"))
+  expect_true(is(rd$mn, "FLQuant"))
+  expect_true(is(rd$sd, "FLQuant"))
+  expect_true(is.data.frame(rd$rod))
+  expect_null(rd$sim)
+})
+
+test_that("recDevs scale='mult' is exp of log residuals", {
+  skip_if_not_installed("FLCore")
+  data(nsher, package = "FLCore")
+  skip_if_not(is(nsher, "FLSR"))
+  r_log <- recDevs(nsher, scale = "log")
+  r_m   <- recDevs(nsher, scale = "mult")
+  expect_equal(c(r_m$residuals), c(exp(r_log$residuals)), tolerance = 1e-8)
+})
+
+test_that("peDevs is dispatched on FLBRP", {
+  skip_if_not_installed("FLBRP")
+  data(ple4brp, package = "FLBRP")
+  skip_if_not(is(ple4brp, "FLBRP"))
+  peq <- try(processError(ple4brp), silent = TRUE)
+  skip_if(inherits(peq, "try-error") || !is(peq, "FLQuants"))
+  pd <- peDevs(ple4brp, scale = "raw")
+  expect_true(is(pd$residuals, "FLQuant"))
+  expect_true(is(pd$mn, "FLQuant"))
+  expect_true(is.data.frame(pd$rod))
+  expect_equal(c(pd$residuals), c(peq[["pe"]]), tolerance = 1e-8)
+  pd_m <- peDevs(ple4brp, scale = "mult")
+  expect_equal(c(pd_m$residuals), c(exp(peDevs(ple4brp, scale = "log")$residuals)),
+               tolerance = 1e-8)
+})
+
+test_that("recDevs nits returns simulated FLQuant", {
+  skip_if_not_installed("FLCore")
+  data(nsher, package = "FLCore")
+  skip_if_not(is(nsher, "FLSR"))
+  rd <- recDevs(nsher, nits = 5L)
+  expect_true(is(rd$sim, "FLQuant"))
+  expect_equal(as.integer(dims(rd$sim)$iter), 5L)
+})

@@ -69,5 +69,6 @@ ftmb(
 A list containing elements 'FLSR', of class *FLSR*
 }
 \description{
-Not exported. Use \code{icesdata::ftmb} for year-varying SPR0 fits.
+Fits Stock Recruitment Relationships (SRR) in TBM
 }
+\keyword{internal}

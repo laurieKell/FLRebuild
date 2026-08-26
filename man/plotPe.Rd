@@ -42,7 +42,7 @@ combined plot; otherwise a named list of ggplots.}
 }
 \value{
 A patchwork object, or a named list with elements
-\code{time}, \code{status}, \code{acf}, \code{hist}.
+  \code{time}, \code{status}, \code{acf}, \code{hist}.
 }
 \description{
 Process-error residual diagnostics: (1) residuals vs time with optional

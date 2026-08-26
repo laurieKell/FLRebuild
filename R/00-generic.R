@@ -117,6 +117,17 @@ setGeneric("processError", function(object, ...) {
   standardGeneric("processError")
 })
 
+#' Process error from stock and equilibrium production
+#'
+#' Shared S4 generic (`FLCore::pe`). The `FLStock`/`FLBRP` method lives in
+#' this package (and `icesdata`); SS3 methods live in `sstruth`.
+#'
+#' @param object An `FLStock`, SS3 directory, or `curveSS` list
+#' @param eq An `FLBRP` for the stock method; omitted for SS3 methods
+#' @param ... Additional arguments
+#' @export
+setGeneric("pe", function(object, eq, ...) standardGeneric("pe"))
+
 # =============================================================================
 # Forward Projection Generic Function
 # =============================================================================

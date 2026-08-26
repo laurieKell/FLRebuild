@@ -107,6 +107,8 @@ Rodionov, S. N. (2004). A sequential algorithm for testing climate regime
 shifts. Geophysical Research Letters, 31(9), L09204.
 }
 \seealso{
-\code{\link{rodFn}} for the base function, \code{\link{rod,numeric-method}}
-  for numeric method, \code{\link{rod,FLQuant-method}} for FLQuant method
+\code{\link{rodFn}} for the base function, \code{\link{rodMn}} and
+  \code{\link{rodSD}} for regime mean and SD as \code{FLQuant},
+  \code{\link{rod,numeric-method}} for numeric method,
+  \code{\link{rod,FLQuant-method}} for FLQuant method
 }
