@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^rebuild_refpoints
 ^inst_libs$
+^src/backUp$
