@@ -163,7 +163,7 @@ covarFn<-function(object,fbar=as.FLQuant(refpts(object)["msy","harvest",drop=T])
     matsel=sum(ecdfDiff)*diff(rangeVals)[1]
     
     # ABI & SSB
-    abiSel=as.numeric(c(ages(catch.sel(x)))>=c(rebuild::abiAge(x)))
+    abiSel=as.numeric(c(ages(catch.sel(x)))>=c(abiAge(x)))
     ssbSel=c(mat(x)%*%stock.wt(x))
     ssbSel=ssbSel/max(ssbSel)
     
@@ -185,9 +185,9 @@ covarFn<-function(object,fbar=as.FLQuant(refpts(object)["msy","harvest",drop=T])
           spr0        =spr0(x),
           shape       =refpts(x)["msy","ssb"]/refpts(x)["virgin","ssb"],
           s           =tryIt(sv(params(x),spr0=spr0(x),model=model)["s"]),
-          pe          =var(rebuild::processError(x)$pe,na.rm=TRUE)^0.5)
+          pe          =var(processError(x)$pe,na.rm=TRUE)^0.5)
         
-    rtn=c(rtn,rebuild::leslieFn(x))
+    rtn=c(rtn,leslieFn(x))
     names(rtn)=gsub("leslieFn.","",names(rtn))
     
     rtn}

@@ -475,8 +475,6 @@ setMethod("awa", signature(object="FLBRP"),
 #' @return An FLQuant object with apical fishing mortality values
 #'
 #' @export
-setGeneric("fapex", function(x, ...) standardGeneric("fapex"))
-
 setMethod("fapex", signature(x="FLBRP"),
           function(x, ...)
           {

@@ -21,28 +21,12 @@
 #' @export
 setGeneric("ebiomass", function(object) standardGeneric("ebiomass"))
 
-#' Calculate total mortality-at-age (Z) using length data.
-#' 
-#' This is a generic S4 method that calculates something using the `haupt` function.
-#' The specific implementation depends on the class of the input object.
-#' 
-#' @param object An object of class FLQuant or data.frame (depends on the method).
-#' @param pars A parameter object (class FLPar) containing necessary parameters.
-#' @param lc A threshold value for lc.
-#' @param lmax A threshold value for lmax.
-#' @param ... Additional arguments .
-#' 
-#' @return estimates of Z.
-#' 
-#' @export
-
-
 #' @rdname ebiomass
 #' @export
 setMethod("ebiomass", signature(object="FLStock"),
           function(object) {
             sel   <- FLCore::harvest(object)
-            wt    <- catch.wt(object) %*% sel %/% fapex(sel)
+            wt    <- catch.wt(object) %*% sel %/% FLCore::fapex(sel)
             eb.wt <- qmax(wt, 0.000001)
             
             apply(eb.wt %*% stock.n(object), 2:6, sum)
@@ -51,7 +35,7 @@ setMethod("ebiomass", signature(object="FLStock"),
 setMethod("ebiomass", signature(object="FLBRP"),
           function(object) {
             sel   <- FLCore::harvest(object)
-            wt    <- catch.wt(object) %*% sel %/% fapex(sel)
+            wt    <- catch.wt(object) %*% sel %/% FLCore::fapex(sel)
             eb.wt <- qmax(wt, 0.000001)
             
             apply(eb.wt %*% stock.n(object), 2:6, sum)

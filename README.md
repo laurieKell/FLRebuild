@@ -59,5 +59,5 @@ See `NEWS.md` for migration guide.
 
 ## Package Status
 
-This package consolidates functions from FLRebuild and rebuild packages. As of version 0.1.0, this package is self-contained and has no dependencies on FLCandy or FLRebuild packages.
+This package consolidates functions from FLRebuild and rebuild packages. As of version 0.1.0, this package is self-contained and has no dependency on FLCandy.
 

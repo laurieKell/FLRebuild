@@ -24,18 +24,10 @@ sp<-function(stk,eq,stock=FLCore::ssb){
            approx(stock,catch,xout=c(ssb(stk))),dimnames=dimnames(stock(stk)))
   FLQuant(dat$y,dimnames=dimnames(stock(stk)))}
 
-#' @rdname pe
-#' @param stock Function returning the stock metric (default `FLCore::ssb`)
-#' @export
-setMethod("pe", signature(object = "FLStock", eq = "FLBRP"),
-          function(object, eq, stock = FLCore::ssb) {
-            (stock(object) %-%
-               window(stock(object)[, -1], end = dims(object)$maxyear + 1) -
-               catch(object) %+% sp(object, eq, stock)) %/% stock(object)
-          })
-
+## pe() methods (after/before/productivity × eql/pellat) live in R/pe.R
 
 ## calculates process error 
+
 spFn<-function(x){
   rfs=FLPar(c(ssb.obs(x)),dimnames=list(refpts="ssb",
                                         quant =dimnames(refpts(x))$quant,

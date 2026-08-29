@@ -117,14 +117,20 @@ setGeneric("processError", function(object, ...) {
   standardGeneric("processError")
 })
 
-#' Process error from stock and equilibrium production
+#' Process error from stock and surplus production
 #'
-#' Shared S4 generic (`FLCore::pe`). The `FLStock`/`FLBRP` method lives in
-#' this package (and `icesdata`); SS3 methods live in `sstruth`.
+#' Shared S4 generic. The \code{FLStock} methods live in this package
+#' (and \code{icesdata}); SS3 methods live in \code{sstruth}.
 #'
-#' @param object An `FLStock`, SS3 directory, or `curveSS` list
-#' @param eq An `FLBRP` for the stock method; omitted for SS3 methods
-#' @param ... Additional arguments
+#' For Pella–Tomlinson dynamics the process error can be placed after catch,
+#' before catch, or on productivity (see \code{\link{pe,FLStock,FLBRP-method}}).
+#' Catch \eqn{C_y} is used in place of \eqn{F_y B_y}.
+#'
+#' @param object An \code{FLStock}, SS3 directory, or \code{curveSS} list
+#' @param eq An \code{FLBRP}, \code{FLPar} (PT params), or \code{PellaTomlinson};
+#'   omitted for SS3 methods
+#' @param ... Additional arguments (\code{location}, \code{scale},
+#'   \code{production} (\code{"FLBRP"} or \code{"pellat"}), \code{stock})
 #' @export
 setGeneric("pe", function(object, eq, ...) standardGeneric("pe"))
 
@@ -304,3 +310,32 @@ setGeneric("ssIndexDiagnostics", function(object, ...) standardGeneric("ssIndexD
 #' @return Method-specific standardized index input data.
 #' @export
 setGeneric("ssIndexPrep", function(object, ...) standardGeneric("ssIndexPrep"))
+
+# =============================================================================
+# ICES stock-attribute accessors (eqsim, benchmark, fishlife)
+# Also exported by icesdata. Defined here so FLRebuild does not need FLCandy.
+# =============================================================================
+
+#' Extract EqSim reference points from an FLStock
+#'
+#' @param object An \code{FLStock}, \code{FLStocks}, or list of stocks
+#' @param ... Unused
+#' @return An \code{FLPar} (single stock) or a data.frame (several stocks)
+#' @export
+setGeneric("eqsim", function(object, ...) standardGeneric("eqsim"))
+
+#' Extract ICES benchmark reference points from an FLStock
+#'
+#' @param object An \code{FLStock}, \code{FLStocks}, \code{FLBRP}, or list
+#' @param ... Unused
+#' @return An \code{FLPar} (single stock) or a data.frame (several stocks)
+#' @export
+setGeneric("benchmark", function(object, ...) standardGeneric("benchmark"))
+
+#' Extract FishLife parameters from an FLStock
+#'
+#' @param object An \code{FLStock}, \code{FLStocks}, or list of stocks
+#' @param ... Unused
+#' @return An \code{FLPar} (single stock) or a data.frame (several stocks)
+#' @export
+setGeneric("fishlife", function(object, ...) standardGeneric("fishlife"))

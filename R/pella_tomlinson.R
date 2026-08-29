@@ -3013,3 +3013,14 @@ setMethod("refsEB", signature(x="FLBRP"), function(x,shape=NULL) {
   
   FLPar(rtn[drop=TRUE])})
 
+#' @rdname pe
+#' @export
+setMethod("pe", signature(object = "FLStock", eq = "PellaTomlinson"),
+          function(object, eq, stock = FLCore::ssb,
+                   location = "after",
+                   scale = "log",
+                   production = "pellat") {
+            pe(object, eq@params, stock = stock, location = location,
+               scale = scale, production = "pellat")
+          })
+

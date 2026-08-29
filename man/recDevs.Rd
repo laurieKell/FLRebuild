@@ -61,6 +61,6 @@ recDevs(nsher, scale = "mult", nits = 20)
 }
 }
 \seealso{
-\code{\link{rod}}, \code{\link{rodMn}}, \code{\link{rodSD}},
-  \code{\link{processError}}
+\code{\link{peDevs}}, \code{\link{rod}}, \code{\link{rodMn}},
+  \code{\link{rodSD}}, \code{\link{processError}}
 }

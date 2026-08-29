@@ -10,27 +10,14 @@ ebiomass(object)
 \S4method{ebiomass}{FLStock}(object)
 }
 \arguments{
-\item{object}{An object of class FLQuant or data.frame (depends on the method).}
-
-\item{pars}{A parameter object (class FLPar) containing necessary parameters.}
-
-\item{lc}{A threshold value for lc.}
-
-\item{lmax}{A threshold value for lmax.}
-
-\item{...}{Additional arguments .}
+\item{object}{An object of class FLStock}
 }
 \value{
 An FLQuant object containing the exploitable biomass time series
-
-estimates of Z.
 }
 \description{
 Calculates the exploitable biomass from an FLStock object using selectivity-weighted
 catch weights and stock numbers.
-
-This is a generic S4 method that calculates something using the `haupt` function.
-The specific implementation depends on the class of the input object.
 }
 \details{
 Exploitable biomass is based on weighting catch weights by selectivity normalised 
