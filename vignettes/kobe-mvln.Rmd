@@ -1,0 +1,117 @@
+---
+title: "Kobe probabilities from the multivariate lognormal"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Kobe probabilities from the multivariate lognormal}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+Annual Kobe probabilities can be read from the Stock Synthesis delta-method
+covariance. Under the multivariate lognormal approximation,
+
+$$
+\left(\log(B/B_{MSY}), \log(F/F_{MSY})\right)
+$$
+
+is bivariate normal, so the four quadrant probabilities are values of the
+bivariate normal cdf. They do not need a new Monte Carlo. A Monte Carlo from
+the same mean and covariance, as in `ssmvln()`, is only a check: the two
+answers should differ by Monte Carlo error.
+
+This replaces an earlier note that swapped the yellow and orange quadrants.
+The names below match `kobe.R` and `kobeGreen()`.
+
+| Quadrant | Stock | Fishing | Meaning |
+| --- | --- | --- | --- |
+| green | \(B/B_{MSY} > 1\) | \(F/F_{MSY} < 1\) | not overfished, no overfishing |
+| orange | \(B/B_{MSY} > 1\) | \(F/F_{MSY} > 1\) | overfishing only |
+| yellow | \(B/B_{MSY} < 1\) | \(F/F_{MSY} < 1\) | overfished only |
+| red | \(B/B_{MSY} < 1\) | \(F/F_{MSY} > 1\) | overfished and overfishing |
+
+# A self-contained year
+
+The moments below are the 2026 North Atlantic shortfin mako terminal year
+used in the `kobeGreen()` example. Log-scale means are `log` of the point
+estimates, because the SS3 estimate is treated as the median.
+
+```{r quadrants}
+muB <- log(0.95)
+muF <- log(0.72)
+sigmaB <- 0.174
+sigmaF <- 0.384
+rho <- -0.652
+
+Sigma <- matrix(c(sigmaB^2, rho * sigmaB * sigmaF,
+                  rho * sigmaB * sigmaF, sigmaF^2), 2, 2)
+
+quadrant <- function(lower, upper) {
+  if (!requireNamespace("mvtnorm", quietly = TRUE))
+    return(NA_real_)
+  as.numeric(mvtnorm::pmvnorm(lower = lower, upper = upper,
+                              mean = c(muB, muF), sigma = Sigma))
+}
+
+probs <- c(
+  green  = quadrant(c(0, -Inf), c(Inf, 0)),
+  orange = quadrant(c(0, 0),    c(Inf, Inf)),
+  yellow = quadrant(c(-Inf, -Inf), c(0, 0)),
+  red    = quadrant(c(-Inf, 0), c(0, Inf))
+)
+round(probs, 3)
+round(sum(probs), 6)
+```
+
+The four probabilities sum to one. Marginal checks use the univariate normal
+on the log scale: \(P(B > B_{MSY}) = 1 - \Phi(0; \mu_B, \sigma_B)\) and
+\(P(F < F_{MSY}) = \Phi(0; \mu_F, \sigma_F)\).
+
+The same calculation is written as `kobeGreen()` and `kobeProbs()` in
+`kobeAnalytic.R` from the shortfin-mako code drop. That file is not yet in
+`R/`, so those names are not exported. `kobeProbs(dq, covar, year)` builds
+the moments from `derived_quants` and `CoVar`. `transform = "current"` copies
+`ssmvln()`, which sets the log-scale correlation equal to the natural-scale
+correlation. `"exact"` uses \(\log(1 + \rho\, CV_u CV_v)\).
+
+# From an SS3 run
+
+`Bratio_YYYY` and `F_YYYY` are \(B/B_{MSY}\) and \(F/F_{MSY}\) only when
+`starter.ss` sets the depletion basis to \(SSB_{MSY}\) and `F_std_scaling` to
+\(F/F_{MSY}\).
+
+```{r ss3, eval=FALSE}
+library(r4ss)
+library(FLRebuild)
+
+ss <- SS_output("path/to/run")
+kobeProbs(ss$derived_quants, ss$CoVar, 2024)
+
+# Monte Carlo from the same MVLN, for comparison
+sim <- ssmvln(ss$CoVar, ss$derived_quants, mc = 10000)
+```
+
+For a grid of future catches, `kobeMomentGrid()` stacks one `SS_output` per
+catch level. `kobeRebuildTime()` interpolates the year at which the green
+probability crosses a target (0.60 to 0.70 for North Atlantic shortfin mako
+under Recommendation 21-09). That year is not a biomass rebuilding time.
+`rebuildTime()` answers the biomass question.
+
+# What this does not replace
+
+The analytic probabilities are the deterministic form of the MVLN, not a
+closed-loop test of a harvest rule. Use them for the Kobe status of a fitted
+run and for a Kobe II matrix across catch levels that share one forecast
+specification. Use `rebuild()` when the question is the trajectory of biomass.

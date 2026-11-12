@@ -1,0 +1,158 @@
+---
+title: "JABBA projections"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{JABBA projections}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 8,
+                      fig.height = 4, dpi = 120, message = FALSE)
+```
+
+Catch projections from the JABBA posterior. Each MCMC draw is projected under
+each constant catch with `projectJabba()` (a wrapper for `JABBA::fw_jabba`),
+and every summary is **empirical**: intervals are posterior quantiles and Kobe
+probabilities are proportions of draws. The last section compares these with
+probabilities from a bivariate log-normal fitted to the same draws, which is
+how far a moment-based summary would be wrong for this posterior.
+
+Set `FLREBUILD_JABBADIR` to a folder of `SMA2026_<run>_jabba.rdata` fits
+(saved with `save.trj = TRUE`) and `FLREBUILD_JABBARUN` to the run to
+project. The defaults are the 2026 North Atlantic shortfin mako runs.
+
+```{r setup}
+library(FLRebuild)
+library(ggplot2)
+
+jabbaDir=Sys.getenv("FLREBUILD_JABBADIR", unset = paste0(
+  "P:/rfmo/iccat/2026/SHK/Analysis/final assessment results/",
+  "JABBA/final3JABBA/outputCorrected"))
+jabbaRun=Sys.getenv("FLREBUILD_JABBARUN", unset = "1-S")
+jabbaRuns=c("1-B", "1-S", "2-S")
+fitFile=function(r) file.path(jabbaDir, paste0("SMA2026_", r, "_jabba.rdata"))
+jabbaExists=requireNamespace("JABBA", quietly = TRUE) && file.exists(fitFile(jabbaRun))
+hasKobe=requireNamespace("kobe", quietly = TRUE)
+
+annYrs =2025:2070
+k2Yrs  =c(2027, 2028, 2029, 2030, 2035, 2040, 2045, 2050, 2055, 2060, 2065, 2070)
+densYrs=c(2026, 2028, 2030, 2050, 2070)
+tacsFig=c(0, 250, 1200, 1883, 2300)
+tacs   =seq(0, 2300, by = 100)
+```
+
+```{r load, eval=jabbaExists}
+fits=lapply(setNames(jabbaRuns, jabbaRuns), function(r)
+  if (file.exists(fitFile(r)))
+    getRuns(setNames(localCopy(fitFile(r)), r), source = "jabba")[[r]])
+fits=Filter(Negate(is.null), fits)
+fit =fits[[jabbaRun]]
+termYr=max(fit$kbtrj$year, na.rm = TRUE)
+prj=projectJabba(fit, catch = tacs, nyears = max(annYrs) - termYr,
+                 imp.yr = 3, thin = 10, prjOnly = TRUE)
+prj=prj[prj$year %in% annYrs, ]
+prob=kobeEmpirical(prj)
+```
+
+# Assessment runs
+
+Posterior median and 95% interval of \(B/B_{MSY}\) and \(F/F_{MSY}\) for each
+run.
+
+```{r runs, eval=jabbaExists, fig.height=4.5, fig.cap="B/BMSY and F/FMSY by JABBA run: posterior median and 95% interval."}
+ci=do.call(rbind, lapply(names(fits), function(r)
+  kobeCI(jabbaKbtrj(fits[[r]], yearMax = termYr), 0.95, paste("JABBA", r))))
+plotKobeCI(ci, colour = "method", facets = quant ~ .)
+```
+
+# Trajectories
+
+History of run `r jabbaRun` followed by the projection for each catch.
+
+```{r traj, eval=jabbaExists, fig.height=4.5, fig.cap="B/BMSY and F/FMSY by catch: posterior median and 50/80/95% intervals. Dotted line: last assessment year."}
+hist=jabbaKbtrj(fit, yearMax = termYr)[, c("iter", "year", "stock", "harvest")]
+trj=rbind(do.call(rbind, lapply(tacsFig, function(c0) cbind(hist, catch = c0))),
+          prj[prj$catch %in% tacsFig, c("iter", "year", "stock", "harvest", "catch")])
+plotKobeCI(kobeCI(trj), vline = termYr + 0.5)
+```
+
+# Kobe II strategy matrix
+
+```{r k2sm, eval=jabbaExists, fig.height=12, fig.width=6, fig.cap="Kobe II strategy matrix: proportion of posterior draws with F <= FMSY, B >= BMSY and in the green quadrant."}
+plotK2SM(k2smLong(prob, years = k2Yrs))
+```
+
+# Densities
+
+```{r dens, eval=jabbaExists, fig.height=4.5, fig.cap="Posterior densities of B/BMSY and F/FMSY by year and catch. Zero F is omitted."}
+d=prj[prj$catch %in% tacsFig & prj$year %in% densYrs, ]
+dl=rbind(data.frame(d[, c("catch", "year")], quant = "B/BMSY", x = d$stock),
+         data.frame(d[, c("catch", "year")], quant = "F/FMSY", x = d$harvest))
+ggplot(dl[is.finite(dl$x) & dl$x > 1e-8, ], aes(x, colour = factor(catch))) +
+  geom_density(linewidth = 0.6) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  facet_grid(quant ~ year, scales = "free") + scale_x_log10() +
+  labs(x = NULL, y = "Density", colour = "Catch (t)") + theme_kobe()
+```
+
+# Phase plot
+
+```{r phase, eval=jabbaExists && hasKobe, fig.height=6, fig.width=6, fig.cap="Kobe phase plot in 2070: posterior draws for selected catches."}
+ph=kobeSample(prj[prj$year == 2070 & prj$catch %in% tacsFig, ], n = 800, seed = 2070)
+ph$run=factor(ph$catch, tacsFig)
+kobe:::kobePhaseMar2(ph[, c("stock", "harvest", "run")],
+                     xlab = expression(B / B[MSY]), ylab = expression(F / F[MSY]))
+```
+
+# Recovery curve
+
+Last year in which the proportion of draws in the green quadrant crosses 0.6
+or 0.7, for each catch run (`kobeRebuildCurveEmpirical()`).
+
+```{r rebuild, eval=jabbaExists, fig.height=3.5, fig.cap="Recovery year against catch for target P(green) of 0.6 and 0.7."}
+curve=kobeRebuildCurveEmpirical(prob, target = c(0.6, 0.7))
+ggplot(curve, aes(catch, rebuildYear, colour = factor(target))) +
+  geom_line() + geom_point(size = 1.2) +
+  labs(x = "Catch (t)", y = "Recovery year", colour = "P(green)") + theme_kobe()
+```
+
+# Catch meeting a target
+
+```{r target, eval=jabbaExists}
+tt=expand.grid(year = c(2045, 2070), target = c(0.6, 0.7))
+tt$catch=mapply(function(y, t) kobeTargetCatchEmpirical(prob, y, t),
+                tt$year, tt$target)
+knitr::kable(tt, digits = 0, caption = "Catch (t) at which P(green) equals the target.")
+```
+
+# Moments against draws
+
+A bivariate log-normal fitted to the draws (`kobeMomentGridJabba()`) gives
+moment-based probabilities. Their difference from the proportions of draws is
+the error of the log-normal approximation for this posterior.
+
+```{r approx, eval=jabbaExists, fig.height=3.5, fig.width=4.5, fig.cap="P(green) from log-normal moments against the proportion of draws, all catches and years."}
+mom=makeK2SM(kobeMomentGridJabba(prj, years = annYrs), years = annYrs)$long
+mom$catch=as.numeric(mom$catch)
+me=merge(mom[, c("catch", "year", "green")], prob[, c("catch", "year", "green")],
+         by = c("catch", "year"), suffixes = c("Moment", "Draws"))
+ggplot(me, aes(greenDraws, greenMoment)) +
+  geom_abline(linetype = "dashed", colour = "grey50") +
+  geom_point(size = 0.5, alpha = 0.5, colour = "#d95f02") + coord_fixed() +
+  labs(x = "P(green), draws", y = "P(green), moments") + theme_kobe()
+```
+
+The mean and maximum absolute differences are
+`r if (jabbaExists) sprintf("%.1f and %.1f", 100 * mean(abs(me$greenMoment - me$greenDraws)), 100 * max(abs(me$greenMoment - me$greenDraws))) else "n/a"`
+percentage points.
+
+```{r status, echo=FALSE}
+if (!jabbaExists) message("JABBA or the fit at ", jabbaDir, " not found; chunks skipped.")
+```

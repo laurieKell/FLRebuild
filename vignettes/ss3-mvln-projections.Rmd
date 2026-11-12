@@ -1,0 +1,134 @@
+---
+title: "MVLN projections (Stock Synthesis)"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{MVLN projections (Stock Synthesis)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 8,
+                      fig.height = 4, dpi = 120, message = FALSE)
+```
+
+Catch projections from Stock Synthesis with uncertainty from the delta-method
+multivariate log-normal (MVLN). For each catch and year,
+\((\log SSF/SSF_{MSY}, \log F/F_{MSY})\) is bivariate normal with means,
+standard deviations and correlation taken from the SS3 derived quantities and
+their covariance. Everything that follows is computed from those five moments:
+
+\[
+P(F \le F_{MSY}) = \Phi(-\mu_F/\sigma_F), \quad
+P(SSF \ge SSF_{MSY}) = \Phi(\mu_B/\sigma_B), \quad
+P(\mathrm{green}) = \Phi_2(\mu_B/\sigma_B, -\mu_F/\sigma_F; -\rho).
+\]
+
+No sampling is needed for intervals, densities or Kobe probabilities. Draws are
+used only for the phase plot.
+
+Set `FLREBUILD_SSDIR` to a folder of `*_{catch}t.Rdata` runs (r4ss
+`SS_output` objects, one per catch). The defaults are the 2026 North Atlantic
+shortfin mako projections. Runs available only as ADMB `ss3.std`/`ss3.cor`
+files can be read with `readSsStd()` and used in the same way.
+
+```{r setup}
+library(FLRebuild)
+library(ggplot2)
+
+ssDir=Sys.getenv("FLREBUILD_SSDIR",
+  unset = "P:/rfmo/iccat/2026/SHK/Analysis/NSMA_projection/SSoutput")
+ssExists=dir.exists(ssDir) &&
+  length(list.files(ssDir, pattern = "_[0-9]+t\\.Rdata$", ignore.case = TRUE)) > 0
+hasKobe=requireNamespace("kobe", quietly = TRUE)
+
+annYrs =2025:2070
+k2Yrs  =c(2027, 2028, 2029, 2030, 2035, 2040, 2045, 2050, 2055, 2060, 2065, 2070)
+densYrs=c(2026, 2028, 2030, 2050, 2070)
+tacsFig=c(0, 250, 1200, 1883, 2300)
+bOffset=1
+```
+
+`bOffset = 1` pairs \(F_y\) with SSF at the end of year \(y\) (SS3
+`Bratio_{y+1}`), the convention of the ICCAT Kobe matrices; `bOffset = 0`
+uses start-of-year SSF.
+
+```{r load-runs, eval=ssExists}
+runs=getRuns(ssDir)
+tacs=sort(as.numeric(names(runs)))
+grid=suppressWarnings(kobeMomentGrid(runs, years = annYrs, transform = "exact",
+                                     bOffset = bOffset))
+```
+
+# Trajectories
+
+Median and 50/80/95% log-normal intervals from the moments (`kobeCI()`).
+
+```{r traj, eval=ssExists, fig.height=4.5, fig.cap="SSF/SSFMSY and F/FMSY by catch: median and 50/80/95% log-normal intervals."}
+plotKobeCI(kobeCI(grid[grid$catch %in% tacsFig, ]))
+```
+
+# Kobe II strategy matrix
+
+```{r k2sm, eval=ssExists, fig.height=12, fig.width=6, fig.cap="Kobe II strategy matrix: P(F <= FMSY), P(SSF >= SSFMSY) and P(green) by catch and year."}
+k2=makeK2SM(grid, years = annYrs)
+k2$long$catch=as.numeric(k2$long$catch)
+plotK2SM(k2smLong(k2$long, panels = c(pNoOverfishing = "P(F <= Fmsy)",
+                                      pNotOverfished = "P(SSF >= SSFmsy)",
+                                      green = "P(green)"),
+              years = k2Yrs))
+```
+
+# Densities
+
+Log-normal densities implied by the moments (`kobeMomentDensity()`). Zero
+catch has no \(F/F_{MSY}\) density.
+
+```{r dens, eval=ssExists, fig.height=4.5, fig.cap="Log-normal densities of SSF/SSFMSY and F/FMSY by year and catch."}
+dens=kobeMomentDensity(grid[grid$catch %in% tacsFig & grid$year %in% densYrs, ])
+ggplot(dens, aes(x, density, colour = factor(catch))) +
+  geom_line(linewidth = 0.6) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  facet_grid(quant ~ year, scales = "free") + scale_x_log10() +
+  labs(x = NULL, y = "Density", colour = "Catch (t)") + theme_kobe()
+```
+
+# Phase plot
+
+Draws from the MVLN in 2070 (`kobeDraws()`), for display only.
+
+```{r phase, eval=ssExists && hasKobe, fig.height=6, fig.width=6, fig.cap="Kobe phase plot in 2070: MVLN draws for selected catches."}
+kobe:::kobePhaseMar2(
+  kobeDraws(grid[grid$catch %in% tacsFig & grid$year == 2070, ], n = 800, seed = 2070),
+  xlab = expression(SSF / SSF[MSY]), ylab = expression(F / F[MSY]))
+```
+
+# Recovery curve
+
+Last year in which \(P(\mathrm{green})\) crosses 0.6 or 0.7, interpolated over
+catch (`kobeRebuildCurve()`).
+
+```{r rebuild, eval=ssExists, fig.height=3.5, fig.cap="Recovery year against catch for target P(green) of 0.6 and 0.7."}
+curve=kobeRebuildCurve(grid, catch = tacs, years = annYrs, target = c(0.6, 0.7))
+ggplot(curve, aes(catch, rebuildYear, colour = factor(target))) +
+  geom_line() + geom_point(size = 1.2) +
+  labs(x = "Catch (t)", y = "Recovery year", colour = "P(green)") + theme_kobe()
+```
+
+# Catch meeting a target
+
+```{r target, eval=ssExists}
+tt=expand.grid(year = c(2045, 2070), target = c(0.6, 0.7))
+tt$catch=mapply(function(y, t) kobeTargetCatchEmpirical(k2$long, y, t),
+                tt$year, tt$target)
+knitr::kable(tt, digits = 0, caption = "Catch (t) at which P(green) equals the target.")
+```
+
+```{r status, echo=FALSE}
+if (!ssExists) message("SS output not found at ", ssDir, "; chunks skipped.")
+```

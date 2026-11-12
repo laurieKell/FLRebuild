@@ -1,0 +1,80 @@
+---
+title: "Equilibrium plots from Stock Synthesis"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Equilibrium plots from Stock Synthesis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+`curveSS()` turns a Stock Synthesis report into the series needed for an
+equilibrium production plot: the historical trajectory, the equilibrium yield
+curve, MSY reference points, and the right-triangle used to scale the panel.
+
+The input is either one `r4ss::SS_output()` list, or a named list of run
+directories. A list of paths is read one run at a time and bound with an `id`
+column.
+
+# What comes back
+
+`curveSS()` returns a list:
+
+- `tseries` — year, total biomass, SSB, yield, surplus production and the
+  equilibrium yield at that SSB
+- `curve` — equilibrium yield against SSB
+- `refpts` — MSY yield and the SSB at which it occurs
+- `triangle` — the four corners used as the plot's upper bound
+- `derived` — the SS3 derived quantities named in the reference-point set
+  (`SSB_MSY`, `Dead_Catch_MSY`, `B_MSY/SSB_unfished`, and the unfished levels)
+
+Surplus production on the trajectory is the accounting identity
+
+$$
+SP_y = B_{y+1} - B_y + Y_y
+$$
+
+using total biomass, not SSB. The equilibrium curve is a spline through
+`equil_yield`.
+
+# One run
+
+```{r one-run, eval=FALSE}
+library(r4ss)
+library(FLRebuild)
+
+ss <- SS_output("path/to/run")
+parts <- curveSS(ss)
+
+parts$refpts
+head(parts$tseries)
+```
+
+# Several runs
+
+Names become the `id` column. Use them to overlay scenarios.
+
+```{r several-runs, eval=FALSE}
+runs <- list(
+  base = "path/to/base",
+  highM = "path/to/highM"
+)
+parts <- curveSS(runs)
+unique(parts$tseries$id)
+```
+
+`maxY` (default 1.5) only stretches the triangle above the largest of the
+historical and equilibrium yields. It does not change the curve or the
+reference points.

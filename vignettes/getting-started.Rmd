@@ -1,0 +1,64 @@
+---
+title: "Getting started with FLRebuild"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with FLRebuild}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+`FLRebuild` collects the functions used to condition operating models, score
+rebuilding, and pass the same biological assumptions to JABBA, SPiCT and FLICC.
+This note is the map. Each later vignette is one workflow.
+
+```{r setup, eval=FALSE}
+library(FLRebuild)
+```
+
+# What to use when
+
+| Question | Function | Vignette |
+| --- | --- | --- |
+| Priors shared by JABBA, SPiCT and FLICC | `canonicalPriors()`, `jabbaPriors()` | Unified prior thread |
+| Fit a JABBA run from an `FLStock` | `jabbaInput()`, `runJABBA()` | JABBA workflow |
+| Where process error sits in the biomass update | `pe()` | Production misspecification |
+| Equilibrium curve from a Stock Synthesis run | `curveSS()` | SS equilibrium plot |
+| Kobe probabilities without a new Monte Carlo | see the MVLN vignette | SS3 MVLN Kobe probabilities |
+| Yield-per-recruit inputs for FLICC | `asFliccPriorsYpr()` | FLICC on the YPR track |
+| Years to a biomass target | `rebuild()`, `rebuildTime()` | — |
+
+`rebuild()` projects an `FLBRP` to a target SSB under a chosen fishing
+mortality. `rebuildTime()` reports how long that recovery takes. Both need a
+conditioned `FLBRP`; they are not the Kobe-probability clock in
+`kobeRebuildTime()`.
+
+# A minimal rebuilding call
+
+```{r rebuild-call, eval=FALSE}
+library(FLCore)
+library(FLBRP)
+library(FLRebuild)
+
+data(ple4)
+eq <- FLBRP(ple4)
+# Forward projection from a fraction of BMSY SSB, with F set to zero
+stk <- rebuild(eq, targetF = 0, initial = 20)
+rebuildTime(stk)
+```
+
+`initial` is the number of starting biomasses between `minVal` and `maxVal`,
+not a year. The returned stock is renamed so year 1 is the first projected
+year.

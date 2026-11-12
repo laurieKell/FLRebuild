@@ -1,0 +1,212 @@
+---
+title: "MCMC projections (Stock Synthesis)"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{MCMC projections (Stock Synthesis)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 8,
+                      fig.height = 4, dpi = 120, message = FALSE)
+```
+
+Catch projections from a Stock Synthesis MCMC. This is the posterior
+counterpart of the MVLN vignette, with the same sections, but every summary
+is **empirical**: intervals are posterior quantiles and Kobe probabilities are
+proportions of draws.
+
+| | MVLN | MCMC |
+|---|---|---|
+| Uncertainty | Hessian, delta method | Posterior draws |
+| Intervals | Log-normal from moments | Empirical quantiles |
+| Kobe probabilities | Bivariate normal (analytical) | Counts of draws |
+| Phase plot | Simulated MVLN draws | Posterior draws |
+
+# Getting the forecasts out of an SS3 MCMC
+
+The forecast is not part of the MCMC itself. After `ss -mcmc ... -mcsave ...`,
+run `ss -mceval` in the same folder: it re-evaluates every saved draw,
+including the forecast in `forecast.ss`, and writes one row per draw to
+`derived_posteriors.sso`. Points to check:
+
+- recent SS3 versions read the saved draws from `ss3.psv`, so copy `ss.psv`
+  if needed;
+- the burn-in and thinning in `starter.ss` are applied again by `-mceval`;
+- the maximum year of the standard deviation report in `starter.ss` must
+  cover the forecast years (`-2` = end year plus forecast);
+- with F report basis 2, `F_<year>` is already \(F/F_{MSY}\).
+
+One `-mceval` per catch scenario, each with its own `forecast.ss`, gives one
+file per catch.
+
+```{r setup}
+library(FLRebuild)
+library(ggplot2)
+
+nsma="P:/rfmo/iccat/2026/SHK/Analysis/NSMA_projection"
+mcDir=Sys.getenv("FLREBUILD_MCMCDIR", unset = "")
+mcPattern=Sys.getenv("FLREBUILD_MCMCPATTERN",
+                     unset = "MCMC_([0-9]+)[^/]*/derived_posteriors\\.sso$")
+mcSrc=if (nzchar(mcDir)) {
+  f=list.files(mcDir, recursive = TRUE)
+  f=f[grepl(mcPattern, f)]
+  setNames(file.path(mcDir, f), sub(paste0(".*?", mcPattern, ".*"), "\\1", f, perl = TRUE))
+} else c("0" = file.path(nsma, "SMA North_MCMC_0_mceval", "derived_posteriors.sso"))
+mleDir=Sys.getenv("FLREBUILD_MLEDIR", unset = file.path(if (nzchar(mcDir)) mcDir else nsma,
+                                                         "SMA North_MLE"))
+mcExists=length(mcSrc) > 0 && all(file.exists(mcSrc))
+mleExists=all(file.exists(file.path(mleDir, c("Report.sso", "ss3.std", "ss3.cor"))))
+hasKobe=requireNamespace("kobe", quietly = TRUE)
+
+annYrs=2025:2070
+k2Yrs =c(2027, 2028, 2029, 2030, 2035, 2040, 2045, 2050, 2055, 2060, 2065, 2070)
+densYrs=c(2026, 2028, 2030, 2050, 2070)
+```
+
+Set `FLREBUILD_MCMCDIR` to a folder with one SS3 run folder per catch, e.g.
+`SMA North_MCMC_1200/derived_posteriors.sso`. `FLREBUILD_MCMCPATTERN` is the
+regular expression for those paths, with the catch as its capture group, and
+`FLREBUILD_MLEDIR` defaults to `SMA North_MLE` in the same folder. Without
+`FLREBUILD_MCMCDIR`, the default is the 2026 North Atlantic shortfin mako
+zero-catch run.
+
+# Reading the draws
+
+`readMcmcDq()` reads one file into Kobe draws, one row per draw and year, with
+\(SSB/SSB_{MSY}\) computed within each draw. `getMcmcRuns()` does this for one
+file per catch and adds a `catch` column. Files with several header blocks
+(e.g. from repeated `-mceval` runs) are reduced to the largest block, the
+`Iter 0` row is dropped, and incomplete rows are reported and removed.
+`ssbLag = 1` gives end-of-year SSB, as in the MVLN vignette.
+
+```{r load, eval=mcExists}
+kb=getMcmcRuns(mcSrc, ssbLag = 1)
+tacs=sort(unique(kb$catch))
+kbP=kb[kb$year %in% annYrs, ]
+prob=kobeEmpirical(kbP, crit = c(0.1, 0.2))
+data.frame(catches = length(tacs), draws = length(unique(kb$iter)),
+           years = paste(range(kb$year), collapse = "-"))
+```
+
+`readMcmcFLQuants()` returns the same file as an `FLQuants` (stock, harvest
+and catch, one iteration per draw), scaled by each draw's MSY reference
+points.
+
+```{r flq, eval=mcExists}
+fq=readMcmcFLQuants(mcSrc[[1]], ssbLag = 1)
+fq
+```
+
+# Posterior and MLE
+
+The posterior should be centred on the MLE of the same model. `readSsStd()`
+recovers the MLE and its delta-method covariance from `ss3.std` and
+`ss3.cor`, which also works when `Report.sso` has been overwritten by
+`-mceval`.
+
+```{r mle, eval=mcExists && mleExists, fig.height=4.5, fig.cap="B/BMSY (end of year) and F/FMSY: MCMC posterior and MLE with delta-method interval, median and 95% intervals."}
+mle=readSsStd(mleDir)
+hy=1950:2024
+ci=rbind(kobeCI(kb[kb$catch == tacs[1] & kb$year %in% hy, ], 0.95, "MCMC"),
+         kobeCI(suppressWarnings(kobeMomentGrid(list("0" = mle), hy, bOffset = 1)),
+                0.95, "MLE (MVLN)"))
+plotKobeCI(ci, colour = "method", facets = quant ~ .)
+```
+
+# Trajectories
+
+```{r traj, eval=mcExists, fig.height=4.5, fig.cap="SSB/SSBMSY and F/FMSY by catch: posterior median and 50/80/95% intervals."}
+plotKobeCI(kobeCI(kbP))
+```
+
+# Kobe II strategy matrix
+
+```{r k2sm, eval=mcExists, fig.height=12, fig.width=6, fig.cap="Kobe II strategy matrix: proportion of draws with F <= FMSY, SSB >= SSBMSY and in the green quadrant."}
+plotK2SM(k2smLong(prob, panels = c(pNoOverfishing = "P(F <= Fmsy)",
+                                   pNotOverfished = "P(SSB >= SSBmsy)",
+                                   green = "P(green)"), years = k2Yrs))
+```
+
+## Quadrant and limit probabilities
+
+```{r quad, eval=mcExists, fig.height=3, fig.cap="Proportion of draws in each Kobe quadrant by year and catch."}
+quad=do.call(rbind, lapply(c("green", "orange", "yellow", "red"), function(q)
+  data.frame(catch = prob$catch, year = prob$year, quadrant = q, p = prob[[q]])))
+quad$quadrant=factor(quad$quadrant, c("red", "orange", "yellow", "green"))
+ggplot(quad, aes(year, p, fill = quadrant)) +
+  geom_area(position = "stack") +
+  facet_wrap(~catch, nrow = 1, labeller = label_both) +
+  labs(x = NULL, y = "Probability") + scale_fill_kobe() + theme_kobe()
+```
+
+```{r crit, eval=mcExists}
+crit=prob[prob$year %in% range(annYrs),
+          c("catch", "year", "green", "orange", "yellow", "red", "pCrit10", "pCrit20")]
+crit[-(1:2)]=round(100 * crit[-(1:2)])
+knitr::kable(crit, row.names = FALSE,
+  caption = "Quadrant probabilities and P(SSB < 10% and 20% of SSBMSY) (%).")
+```
+
+# Densities
+
+Kernel densities of the draws. Unlike the MVLN, these can be skewed or
+multimodal; a departure from log-normal shape means moment-based
+probabilities would be biased.
+
+```{r dens, eval=mcExists, fig.height=4.5, fig.cap="Posterior densities of SSB/SSBMSY and F/FMSY by year and catch. Zero F is omitted."}
+d=kbP[kbP$year %in% densYrs, ]
+dl=rbind(data.frame(d[, c("catch", "year")], quant = "SSB/SSBMSY", x = d$stock),
+         data.frame(d[, c("catch", "year")], quant = "F/FMSY", x = d$harvest))
+ggplot(dl[is.finite(dl$x) & dl$x > 1e-8, ], aes(x, colour = factor(catch))) +
+  geom_density(linewidth = 0.6) +
+  geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  facet_grid(quant ~ year, scales = "free") + scale_x_log10() +
+  labs(x = NULL, y = "Density", colour = "Catch (t)") + theme_kobe()
+```
+
+# Phase plot
+
+```{r phase, eval=mcExists && hasKobe, fig.height=6, fig.width=6, fig.cap="Kobe phase plot in 2070: posterior draws."}
+ph=kobeSample(kbP[kbP$year == 2070, ], n = 800, seed = 2070)
+ph$run=factor(ph$catch)
+kobe:::kobePhaseMar2(ph[, c("stock", "harvest", "run")],
+                     xlab = expression(SSB / SSB[MSY]), ylab = expression(F / F[MSY]))
+```
+
+# Recovery curve
+
+Last year in which the proportion of draws in green crosses 0.6 or 0.7, for
+each catch run; there is no interpolation between catches.
+
+```{r rebuild, eval=mcExists, fig.height=3.5, fig.cap="Recovery year against catch for target P(green) of 0.6 and 0.7."}
+curve=kobeRebuildCurveEmpirical(prob, target = c(0.6, 0.7))
+ggplot(curve, aes(catch, rebuildYear, colour = factor(target))) +
+  geom_line() + geom_point(size = 1.2) +
+  labs(x = "Catch (t)", y = "Recovery year", colour = "P(green)") + theme_kobe()
+```
+
+# Moments against draws
+
+```{r approx, eval=mcExists}
+mom=makeK2SM(kobeMomentGridJabba(kbP, years = annYrs), years = annYrs)$long
+mom$catch=as.numeric(mom$catch)
+me=merge(mom[, c("catch", "year", "green")], prob[, c("catch", "year", "green")],
+         by = c("catch", "year"), suffixes = c("Moment", "Draws"))
+data.frame(`Mean abs. diff (pp)` = 100 * mean(abs(me$greenMoment - me$greenDraws)),
+           `Max abs. diff (pp)`  = 100 * max(abs(me$greenMoment - me$greenDraws)),
+           check.names = FALSE)
+```
+
+`kobeMomentGridJabba()` fits a bivariate log-normal to any table of draws, so
+the same check applies to SS3 and JABBA posteriors.
+
+```{r status, echo=FALSE}
+if (!mcExists) message("MCMC derived quantities not found; chunks skipped.")
+```

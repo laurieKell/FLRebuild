@@ -36,4 +36,6 @@ Suggests:
     knitr (>= 1.30),
     rmarkdown (>= 2.0),
     patchwork,
-    icesdata
+    icesdata,
+    mvtnorm
+VignetteBuilder: knitr

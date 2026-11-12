@@ -1,0 +1,74 @@
+---
+title: "Where process error sits in the production update"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Where process error sits in the production update}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+A production model can put the process residual in three different places.
+The same biomass and catch series then imply three different residual time
+series, and a diagnostic that assumes the wrong place will call a coherent
+stock misspecified. `pe()` calculates each placement from an `FLStock` and an
+equilibrium object.
+
+# The three updates
+
+Catch \(C_y\) replaces \(F_y B_y\). Surplus production is \(SP_y\).
+
+| `location` | Update | Residual |
+| --- | --- | --- |
+| `"after"` | \(B_{y+1} = (B_y + SP_y - C_y)\, e^{\eta_y}\) | \(e^{\eta_y} = B_{y+1} / (B_y + SP_y - C_y)\) |
+| `"before"` | \(B_{y+1} = (B_y + SP_y)\, e^{\eta_y} - C_y\) | \(e^{\eta_y} = (B_{y+1} + C_y) / (B_y + SP_y)\) |
+| `"productivity"` | \(B_{y+1} = B_y + SP_y e^{\eta_y} - C_y\) | \(e^{\eta_y} = (B_{y+1} - B_y + C_y) / SP_y\) |
+
+`scale = "log"` (the default) returns \(\eta_y\). `"mult"` returns
+\(e^{\eta_y}\). `"relative"` returns \((B_{y+1} - B_y + C_y - SP_y) / B_y\)
+for `"after"`, and \(e^{\eta_y} - 1\) otherwise.
+
+# Where \(SP_y\) comes from
+
+`production = "FLBRP"` reads equilibrium yield off the `FLBRP` at the observed
+biomass. `production = "pellat"` uses the Pella–Tomlinson curve
+
+$$
+SP_y = (r/p)\, B_y \left(1 - (B_y/K)^p\right)
+$$
+
+with parameters from `pellatParams()` when `eq` is an `FLBRP`.
+
+# Comparison
+
+```{r pe-three, eval=FALSE}
+library(FLCore)
+library(FLBRP)
+library(FLRebuild)
+
+data(ple4)
+eq <- brp(FLBRP(ple4))
+
+after <- pe(ple4, eq, production = "pellat", location = "after")
+before <- pe(ple4, eq, production = "pellat", location = "before")
+onProd <- pe(ple4, eq, production = "pellat", location = "productivity")
+```
+
+Plot the three log-residual series on one panel before interpreting a run of
+positive or negative residuals. A pattern that appears in only one placement
+is an assumption about the timing of \(\eta\), not a property of the stock.
+
+`plotPe()` draws the residual series for a fitted production model. `jabbaPE()`
+and `spictPE()` are the same calculation specialised to those fits.

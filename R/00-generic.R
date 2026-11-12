@@ -265,8 +265,11 @@ setGeneric("ssRetrospective", function(object, ...) standardGeneric("ssRetrospec
 
 #' Build equilibrium and production-curve inputs from SS output
 #'
-#' @param object A Stock Synthesis output object.
-#' @param ... Additional arguments passed to methods.
+#' @param object A Stock Synthesis output object, or an \code{FLStock}
+#'   passed with an \code{FLBRP} as the next argument
+#'   (\code{curveSS(stock, brp)}).
+#' @param ... Additional arguments passed to methods. For an \code{FLStock},
+#'   the equilibrium object is an \code{FLBRP} (\code{brp}).
 #' @return Method-specific equilibrium/production-curve output.
 #' @export
 setGeneric("curveSS", function(object, ...) standardGeneric("curveSS"))
@@ -339,3 +342,110 @@ setGeneric("benchmark", function(object, ...) standardGeneric("benchmark"))
 #' @return An \code{FLPar} (single stock) or a data.frame (several stocks)
 #' @export
 setGeneric("fishlife", function(object, ...) standardGeneric("fishlife"))
+
+# =============================================================================
+# Assessment-run and Stock Synthesis generics
+# Methods live in mvln.R, ss-jabba-summary.R, ss-project.R and ss-run.R.
+# Defined here so setMethod() runs after the generic exists.
+# =============================================================================
+
+#' Load assessment or projection runs
+#'
+#' S4 generic for named lists of Stock Synthesis projection outputs or JABBA
+#' assessment fits. \code{character} methods take a directory or a named vector
+#' of paths; \code{list} methods validate an already-loaded collection.
+#' Source is chosen with \code{source} (\code{"ss"}, \code{"jabba"}, or
+#' \code{"auto"}). Auto-detection uses SS catch-level names /
+#' \code{*_{catch}t.Rdata} files versus JABBA run labels / \code{*_jabba.rdata}
+#' files.
+#'
+#' @param object Named character vector of paths, a directory, or a named list
+#'   of loaded run objects.
+#' @param ... Passed to methods (\code{pattern}, \code{runs}, \code{source}).
+#' @return A named list of run objects (SS_output-shaped or JABBA fits).
+#' @seealso \code{\link{getJabbaRuns}}, \code{\link{kobeMomentGrid}},
+#'   \code{\link{kobeMomentGridJabba}}, \code{\link{makeK2SM}}
+#' @export
+setGeneric("getRuns", function(object, ...) standardGeneric("getRuns"))
+
+#' MSY reference points, shape, r and doubling time by scenario
+#'
+#' One row per fit, for SS3 (\code{r4ss::SS_output}) and JABBA fits, a named
+#' list of either, or an SS3 \code{derived_posteriors.sso} file (posterior
+#' medians).
+#'
+#' @param object An SS3 or JABBA fit, a named list of fits, or a path to a
+#'   \code{derived_posteriors.sso} file.
+#' @param ... Passed to methods.
+#' @return A \code{data.frame} with \code{msy}, \code{fmsy}, \code{bmsy},
+#'   \code{b0}, \code{tb0}, \code{shape}, \code{m}, \code{r} and \code{td}.
+#' @export
+setGeneric("refptsSummary", function(object, ...) standardGeneric("refptsSummary"))
+
+#' Realised minus predicted surplus production for SS3 and JABBA fits
+#'
+#' \eqn{pe_t = {(B_{t+1} - B_t + C_t) - P(S_t)} / MSY}, with \eqn{B} total
+#' biomass, \eqn{S} the stock on the production function (SSB for SS3) and
+#' \eqn{P} the equilibrium production function.
+#'
+#' @param object An SS3 or JABBA fit, or a named list of fits.
+#' @param ... Passed to methods.
+#' @return A \code{data.frame} with \code{year}, \code{biomass}, \code{stock},
+#'   \code{catch}, \code{sp}, \code{pf}, \code{bmsy}, \code{msy}, \code{x}
+#'   and \code{pe}.
+#' @seealso \code{\link{refptsSummary}}, \code{\link{plotSurplusError}}
+#' @export
+setGeneric("surplusError", function(object, ...) standardGeneric("surplusError"))
+
+#' Stochastic SS3 projections
+#'
+#' Projects constant-catch trajectories from an SS3 model directory with
+#' \code{FLasher::fwd}, optional historical recruitment residuals, and
+#' optional MCMC conditioning of terminal SSB.
+#'
+#' @param object Path to an SS3 model directory.
+#' @param ... Passed to methods (\code{catch}, \code{nits}, \code{end},
+#'   \code{residuals}, \code{mcmc}, and related arguments).
+#' @return A \code{data.frame} of \code{stock} (\eqn{SSB/SSB_{MSY}}) and
+#'   \code{harvest} (\eqn{F/F_{MSY}}) by catch, year and iteration.
+#' @export
+setGeneric("ssProject", function(object, ...) standardGeneric("ssProject"))
+
+#' Set up MLE and MCMC folders for a Stock Synthesis scenario
+#'
+#' Copies a fitted SS3 scenario into \code{dir/mle} and \code{dir/mcmc}, each
+#' with one \code{forecasts/<label>} subfolder per forecast file.
+#'
+#' @param object Path to the SS3 scenario folder.
+#' @param ... Passed to methods (\code{dir}, \code{forecasts}, \code{exe}).
+#' @return Named character vector with the \code{mle} and \code{mcmc} folders.
+#' @seealso \code{\link{ssMcmc}}, \code{\link{ssForecast}}
+#' @export
+setGeneric("ssSetup", function(object, ...) standardGeneric("ssSetup"))
+
+#' Run an MCMC for a Stock Synthesis model with adnuts
+#'
+#' Re-optimises with \code{-mcmc 15}, runs a short NUTS pilot with the MLE
+#' mass matrix, then the main NUTS run with the pilot mass matrix. The saved
+#' draws (\code{.psv}) are used by \code{\link{ssForecast}}.
+#'
+#' @param object Path to the MCMC folder.
+#' @param ... Passed to methods.
+#' @return The adnuts fit, invisibly.
+#' @seealso \code{\link{ssSetup}}, \code{\link{ssForecast}}
+#' @export
+setGeneric("ssMcmc", function(object, ...) standardGeneric("ssMcmc"))
+
+#' Run Stock Synthesis forecasts in an MLE or MCMC folder
+#'
+#' Runs every \code{forecasts/<label>} subfolder: \code{-sdonly} from the MLE
+#' Hessian for an MLE folder, \code{-mceval} over the saved draws for an MCMC
+#' folder (one containing a \code{.psv}).
+#'
+#' @param object Path to the MLE or MCMC folder.
+#' @param ... Passed to methods.
+#' @return A \code{data.frame} with one row per forecast: \code{label},
+#'   \code{dir}, \code{ok} and \code{minutes}.
+#' @seealso \code{\link{ssSetup}}, \code{\link{ssMcmc}}
+#' @export
+setGeneric("ssForecast", function(object, ...) standardGeneric("ssForecast"))

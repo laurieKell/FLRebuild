@@ -1,0 +1,71 @@
+---
+title: "FLICC on the yield-per-recruit track"
+author: "Laurence T. Kell"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FLICC on the yield-per-recruit track}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Purpose
+
+JABBA and SPiCT share a biomass-production model: surplus production, catch,
+and an abundance index. FLICC, kept as a yield-per-recruit calculation, does
+not. Its inputs are an `FLStock` (life history, maturity, selectivity) and an
+F grid. Putting FLICC on the Pella–Tomlinson object used for JABBA and SPiCT
+mixes two different models.
+
+The shared piece is the prior thread in
+`vignettes/prior-thread-jabba-spict-flicc.Rmd`: one canonical table, then a
+separate adapter for each model. `asFliccPriors()` maps that table onto FLICC
+scalars. `asFliccPriorsYpr()` does not use it. It builds the per-recruit curve
+from the stock.
+
+# Objects
+
+1. `FLPar` holds the life-history parameters (growth, mortality, maturity).
+2. An `FLStock` carries those schedules at age, plus the selectivity in
+   `harvest`.
+3. `asFliccPriorsYpr()` sweeps F and returns yield per recruit and spawning
+   potential per recruit.
+
+# The YPR adapter
+
+```{r ypr, eval=FALSE}
+library(FLCore)
+library(FLRebuild)
+
+data(ple4)
+ypr <- asFliccPriorsYpr(ple4, fRange = c(0, 2), nF = 101, priorCv = 0.30)
+
+ypr$reference
+head(ypr$curve)
+ypr$canonical
+```
+
+`reference` contains `fMsyProxy`, `yprMsyProxy`, `spr0`, `sprAtFmsy` and
+`sprRatioAtFmsy`. `curve` is the F grid with `ypr` and `spr`. `canonical` is
+the same scalars in the prior-thread shape, with standard deviations from
+`priorCv`, so a YPR run can be set beside a production run without pretending
+they share a dynamic model.
+
+`selectivity` overrides the harvest-at-age pattern. Leave it `NULL` to
+normalise the stock's own harvest.
+
+# What is not shared
+
+Do not pass a JABBA or SPiCT production fit into `asFliccPriorsYpr()`.
+Reference points from the two tracks can still be tabulated together after
+both exist. The comparison is then explicit: per-recruit equilibrium against
+biomass-dynamic equilibrium, not two views of one fitted object.
